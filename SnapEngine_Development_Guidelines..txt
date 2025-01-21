@@ -264,5 +264,94 @@ Main Entry Point: A single main.cpp handles command-line arguments, test mode, a
 Collaboration: Clear branching, version control, and CI keep the code stable and well-tested.
 Adhering to these guidelines ensures a clean, maintainable, and well-documented codebase that both humans and ChatGPT can easily navigate, contribute to, and extend.
 
+API Documentation:
+Window Class
+Purpose
+Creates and manages a single Win32 window (via Windows.h).
+
+Public API
+
+Constructor
+Window(const std::string& title, int width, int height)
+Sets the window title and size but does not open the window.
+
+bool Create()
+Opens the Win32 window. Returns true on success.
+
+bool ProcessMessages()
+Processes input and other window events. Returns false if the window has been closed.
+
+HWND GetHandle() const
+Returns the native Win32 HWND.
+
+static void test()
+Simple test that creates and closes a window.
+
+Example Usage
+
+Window w("Test Window", 800, 600);
+if (w.Create()) {
+    while (w.ProcessMessages()) {
+        // Render or update here...
+    }
+}
+ManagerBase Class
+Purpose
+An abstract base class that stores and processes nlohmann::json objects. Derived classes define how objects are created from these JSON entries.
+
+Public API
+
+void addJsonObject(const nlohmann::json& jsonObject)
+Adds a jsonObject to the internal storage.
+
+const std::vectornlohmann::json& getJsonObjects() const
+Returns a constant reference to the collection of stored JSON objects.
+
+virtual void createObjects() = 0
+Pure virtual method. Must be overridden by derived classes to process the stored JSON objects and create the desired objects.
+
+Example Usage
+
+ManagerBase* manager = new ExampleManager();
+nlohmann::json obj = { {"name", "example"} };
+manager->addJsonObject(obj);
+manager->createObjects();
+ExampleManager Class
+Purpose
+A concrete implementation of ManagerBase that demonstrates how to create objects from the stored JSON data.
+
+Overrides
+
+void createObjects()
+Processes each stored JSON object and creates objects. Throws std::runtime_error if a required field is missing.
+Example Usage
+
+ExampleManager manager;
+nlohmann::json obj = { {"name", "example"} };
+manager.addJsonObject(obj);
+manager.createObjects(); // e.g., prints "Creating object with name: example"
+Typical Usage Workflow
+Instantiate a derived manager (e.g., ExampleManager).
+Call addJsonObject to insert JSON objects.
+Invoke the overridden createObjects to process and create objects based on the stored JSON.
+Notes
+
+Extend ManagerBase by implementing custom creation logic in createObjects.
+Ensure JSON objects have the required fields to avoid exceptions.
+Complete Example
+#include <nlohmann/json.hpp>
+#include <iostream>
+#include "ManagerBase.h"
+
+int main() {
+    ExampleManager manager;
+    nlohmann::json obj = { {"name", "example"} };
+
+    manager.addJsonObject(obj);
+    manager.createObjects(); // Outputs: "Creating object with name: example"
+
+    return 0;
+}
+
 Happy Coding!
 SnapEngine Team
