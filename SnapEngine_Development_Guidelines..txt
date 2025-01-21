@@ -231,17 +231,10 @@ Configure & build SnapEngine via CMake.
 Run all tests (--test).
 Report success/failure to your repository.
 8. Documentation Maintenance
-API Documentation (docs/API_Documentation.md):
+API Documentation:
 
 Keep references for all classes and their major methods.
 Cross-link to .h files for deeper detail.
-Dependencies (docs/Dependencies.md):
-
-List all external libraries with:
-Name, version, usage purpose
-Special configuration details
-Update whenever you add/remove/change a dependency.
-SnapEngine Development Guidelines (docs/SnapEngine_Development_Guidelines.md):
 
 This very document.
 Update if coding styles, project structure, or other major guidelines change.
@@ -259,34 +252,45 @@ Adhering to these guidelines ensures a clean, maintainable, and well-documented 
 API Documentation:
 Window Class
 Purpose
-Creates and manages a single Win32 window (via Windows.h).
-
+Encapsulates the creation and management of a single Win32 window (using Unicode APIs).
+Provides an API for opening the window, processing events, and verifying basic functionality in tests.
 Public API
-
 Constructor
-Window(const std::string& title, int width, int height)
-Sets the window title and size but does not open the window.
-
+Window(const std::string& title, int width, int height);
+Sets the window’s title and desired client dimensions (width × height).
+Does not actually create/open the window; call Create() afterward.
 bool Create()
-Opens the Win32 window. Returns true on success.
-
+Creates and displays the underlying Win32 window.
+Returns true on success, false if registration or creation fails.
 bool ProcessMessages()
-Processes input and other window events. Returns false if the window has been closed.
-
-HWND GetHandle() const
-Returns the native Win32 HWND.
-
+Pumps the window’s message queue (input, system events, etc.).
+Returns false if a close event is detected, indicating the window should shut down.
+HWND GetHandle() const (Optional if exposed)
+Retrieves the native Win32 handle (HWND) to the window, if needed for lower-level operations.
 static void test()
-Simple test that creates and closes a window.
+Minimal test routine that creates a small window, asserts success, processes events briefly, and closes.
+Typical Usage
+#include "Window.h"
 
-Example Usage
+int main() {
+    // 1) Construct
+    Window myWindow("My Game Window", 800, 600);
 
-Window w("Test Window", 800, 600);
-if (w.Create()) {
-    while (w.ProcessMessages()) {
-        // Render or update here...
+    // 2) Create (open) the Win32 window
+    if (!myWindow.Create()) {
+        // Handle error...
+        return -1;
     }
+
+    // 3) Main loop
+    while (myWindow.ProcessMessages()) {
+        // Update, render, etc.
+    }
+
+    // 4) Exiting automatically destroys the window
+    return 0;
 }
+
 ManagerBase Class
 Purpose
 An abstract base class that stores and processes nlohmann::json objects. Derived classes define how objects are created from these JSON entries.
