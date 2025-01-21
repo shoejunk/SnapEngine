@@ -1,31 +1,46 @@
 #include "Window.h"
-#include <cassert>
 #include <iostream>
+#include <cassert>
 
-/// Global map or storage could be used if you need to retrieve the
-/// Window instance from HWND in the WindowProc. For simplicity, 
-/// this example uses static members and a single WNDCLASS. 
-/// For multiple windows, you can:
-///   - Register multiple WNDCLASSes, or
-///   - Use a map from HWND -> Window* in WindowProc.
-
-Window::Window(const std::string& title, int width, int height)
-	: m_title(title), m_width(width), m_height(height),
-	m_hWnd(nullptr), m_isCreated(false)
+// Win32 callback
+LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	// Configure the WNDCLASS structure
-	// (You can customize the window style, icon, cursor, etc. as needed)
-	m_windowClass = {};
+	switch (uMsg)
+	{
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		return 0;
+
+	default:
+		// For any unhandled messages, call the default window procedure
+		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+	}
+}
+
+// Constructor
+Window::Window(const std::string& title, int width, int height)
+	: m_title(title)
+	, m_width(width)
+	, m_height(height)
+	, m_hWnd(nullptr)
+	, m_isCreated(false)
+{
+	// Zero out the struct to avoid garbage in uninitialized fields.
+	ZeroMemory(&m_windowClass, sizeof(m_windowClass));
+
+	// Fill fields of WNDCLASSW
+	m_windowClass.style = CS_HREDRAW | CS_VREDRAW;
 	m_windowClass.lpfnWndProc = Window::WindowProc;
 	m_windowClass.hInstance = GetModuleHandle(nullptr);
-	m_windowClass.lpszClassName = "SnapEngineWindowClass";
-	m_windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	m_windowClass.lpszClassName = L"SnapEngineWindowClass";  // Wide literal
+	m_windowClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	m_windowClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 }
 
+// Destructor
 Window::~Window()
 {
-	// Optionally, destroy the window if it still exists
+	// Optionally destroy the window if it still exists
 	if (m_hWnd)
 	{
 		DestroyWindow(m_hWnd);
@@ -33,37 +48,49 @@ Window::~Window()
 	}
 }
 
+// Create the window
 bool Window::Create()
 {
-	// Register the window class if not already registered.
-	// For multiple windows, you could register once in a static map or similar.
-	if (!RegisterClass(&m_windowClass))
+	// Register the window class as UNICODE
+	ATOM atom = RegisterClassW(&m_windowClass);
+	if (!atom)
 	{
-		std::cerr << "Failed to register window class.\n";
-		return false;
+		DWORD err = GetLastError();
+		// 1410 (ERROR_CLASS_ALREADY_EXISTS) is okay if the class was already registered
+		if (err != ERROR_CLASS_ALREADY_EXISTS)
+		{
+			std::cerr << "Failed to register window class. GetLastError()=" << err << std::endl;
+			return false;
+		}
 	}
 
-	// Calculate the size of the window rectangle based on desired client area
-	RECT rect = { 0, 0, m_width, m_height };
-	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
-	int adjustedWidth = rect.right - rect.left;
-	int adjustedHeight = rect.bottom - rect.top;
+	// Adjust the client area to the requested dimensions
+	RECT r = { 0, 0, m_width, m_height };
+	AdjustWindowRect(&r, WS_OVERLAPPEDWINDOW, FALSE);
+	int adjustedWidth = r.right - r.left;
+	int adjustedHeight = r.bottom - r.top;
 
-	m_hWnd = CreateWindow(
-		m_windowClass.lpszClassName,             // Window class name
-		m_title.c_str(),                         // Window title
-		WS_OVERLAPPEDWINDOW,                     // Style
-		CW_USEDEFAULT, CW_USEDEFAULT,            // Position
-		adjustedWidth, adjustedHeight,           // Size
-		nullptr,                                 // Parent
-		nullptr,                                 // Menu
-		m_windowClass.hInstance,                 // Instance handle
-		nullptr                                  // Additional data
+	// Convert our ASCII std::string title to a std::wstring
+	std::wstring wideTitle(m_title.begin(), m_title.end());
+
+	// Create the window using the wide API
+	m_hWnd = CreateWindowExW(
+		0,
+		m_windowClass.lpszClassName,  // class name
+		wideTitle.c_str(),            // title
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		adjustedWidth, adjustedHeight,
+		nullptr,    // parent
+		nullptr,    // menu
+		m_windowClass.hInstance,
+		nullptr
 	);
 
 	if (!m_hWnd)
 	{
-		std::cerr << "Failed to create window.\n";
+		DWORD err = GetLastError();
+		std::cerr << "Failed to create window. GetLastError()=" << err << std::endl;
 		return false;
 	}
 
@@ -74,54 +101,44 @@ bool Window::Create()
 	return true;
 }
 
+// Pump Win32 messages
 bool Window::ProcessMessages()
 {
 	if (!m_isCreated) return false;
 
 	MSG msg = {};
-	while (PeekMessage(&msg, m_hWnd, 0, 0, PM_REMOVE))
+	// PeekMessageW (rather than PeekMessageA) when using Unicode
+	while (PeekMessageW(&msg, m_hWnd, 0, 0, PM_REMOVE))
 	{
 		if (msg.message == WM_QUIT)
 		{
 			return false; // Window is closing
 		}
+
 		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		DispatchMessageW(&msg);
 	}
-
-	return true; // Window is still active
+	return true;
 }
 
-LRESULT CALLBACK Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-	switch (uMsg)
-	{
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
-	default:
-		return DefWindowProc(hwnd, uMsg, wParam, lParam);
-	}
-}
-
+// Simple test routine
 void Window::test()
 {
 	std::cout << "[Window] Running tests...\n";
 
-	// Create a Window instance
 	Window testWin("Test Window", 400, 300);
 	bool created = testWin.Create();
 	assert(created && "Failed to create test window.");
 
-	// Process a few frames of messages to ensure it opens (artificial limit)
-	int framesToProcess = 50;
-	while (framesToProcess-- > 0)
+	// Process messages for a few frames
+	int frames = 50;
+	while (frames-- > 0)
 	{
 		if (!testWin.ProcessMessages())
 		{
 			break;
 		}
-		// Simulate a small sleep or game loop tick
+		// Sleep a bit to simulate some “engine ticks”
 		Sleep(10);
 	}
 

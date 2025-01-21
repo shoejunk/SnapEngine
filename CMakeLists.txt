@@ -9,13 +9,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Include CPM.cmake (dependency manager)
 include(cmake/CPM.cmake)
 
-# Add nlohmann/json package
+# Add nlohmann/json package via CPM
 CPMAddPackage(
   NAME nlohmann_json
   VERSION 3.11.3
   GITHUB_REPOSITORY nlohmann/json
   OPTIONS
-    "JSON_BuildTests OFF"
+    "JSON_BuildTests OFF"   # Disable json's own tests
 )
 
 # -------------------------------------------------------
@@ -30,15 +30,29 @@ file(GLOB_RECURSE SNAPENGINE_SOURCES
 # Create the SnapEngine library
 # -------------------------------------------------------
 add_library(SnapEngine STATIC ${SNAPENGINE_SOURCES})
+
+# Ensure SnapEngine can include its own headers and nlohmann/json
 target_include_directories(SnapEngine PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
+    "$<INSTALL_INTERFACE:src>"
+)
+
+# Link SnapEngine with nlohmann_json (so it can use nlohmann/json in its .cpp files)
+target_link_libraries(SnapEngine
+    PUBLIC
+        nlohmann_json
 )
 
 # -------------------------------------------------------
 # Create the main executable
 # -------------------------------------------------------
 add_executable(SnapEngineApp main.cpp)
-target_link_libraries(SnapEngineApp PRIVATE SnapEngine nlohmann_json)
+
+# Link SnapEngineApp with SnapEngine (and transitively nlohmann_json)
+target_link_libraries(SnapEngineApp
+    PRIVATE
+        SnapEngine
+)
 
 # -------------------------------------------------------
 # Enable Testing with CTest
@@ -51,7 +65,3 @@ add_test(
     NAME SnapEngineAllTests
     COMMAND SnapEngineApp --test
 )
-
-# By default, CMake places tests in the Debug configuration on Windows
-# when building multi-config (e.g., Visual Studio). The "-C Debug" part
-# in your .bat file will ensure Debug-mode tests are run.

@@ -16,29 +16,21 @@ SnapEngine/
 ├─ cmake/
 │   └─ cpm.cmake                 # Place or fetch CPM.cmake here
 │
-├─ dependencies/
-│   └─ (Optional) local vendor libraries if needed
-│
-├─ docs/
-│   ├─ API_Documentation.md      # Central document referencing all class APIs
-│   ├─ Dependencies.md           # Reference for all pulled-in dependencies
-│   └─ SnapEngine_Development_Guidelines.md   # (This file)
-│
 ├─ src/
-│   ├─ EngineCore.h
-│   ├─ EngineCore.cpp
-│   ├─ GameLogic.h
-│   ├─ GameLogic.cpp
+│   ├─ Window.h
+│   ├─ Window.cpp
+│   ├─ ManagerBase.h
+│   ├─ WindowManager.h
+│   ├─ WindowManager.cpp
 │   ├─ (other classes, one .h + one .cpp for each)
-│
-├─ tests/
-│   └─ (Optional) Additional test resources if needed
 │
 ├─ main.cpp
 │
 ├─ CMakeLists.txt
-├─ SnapEngine.sln                # Visual Studio solution file
-└─ SnapEngine.vcxproj            # Visual Studio project file (if generated)
+├─ SnapEngine.sln                          # Visual Studio solution file
+└─ SnapEngine.vcxproj                      # Visual Studio project file (if generated)
+└─ SnapEngine_Development_Guidelines.txt   # (This file)
+
 Note:
 
 You may further customize the naming or additional subfolders if needed, but each class should still follow the one .h and one .cpp practice.
@@ -351,6 +343,30 @@ int main() {
     manager.createObjects(); // Outputs: "Creating object with name: example"
 
     return 0;
+}
+
+## WindowManager Class
+
+**Header:** [`WindowManager.h`](../src/WindowManager.h)  
+**Source:** [`WindowManager.cpp`](../src/WindowManager.cpp)
+
+### Purpose
+`WindowManager` derives from `ManagerBase` and manages the creation of multiple `Window` instances from JSON objects.
+
+### Public API
+
+---
+
+#### `void createObjects() override`
+Creates each `Window` based on the JSON data stored in `ManagerBase::getJsonObjects()`.
+Throws `std::runtime_error` if a required JSON field is missing.
+
+**Example JSON**:
+```json
+{
+  "title": "My Window",
+  "width": 1280,
+  "height": 720
 }
 
 Happy Coding!
