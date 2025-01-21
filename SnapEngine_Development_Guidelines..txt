@@ -9,10 +9,8 @@ Dependency Manager: CPM.cmake
 SnapEngine aims to be a modular, testable, and well-documented framework for building games.
 
 2. Repository Structure
-A recommended folder layout:
+Below is a recommended folder layout. Notice that all .h and .cpp files live directly under src/, maintaining the “one header, one source file” pattern for each class.
 
-bash
-Copy
 SnapEngine/
 │
 ├─ cmake/
@@ -27,14 +25,11 @@ SnapEngine/
 │   └─ SnapEngine_Development_Guidelines.md   # (This file)
 │
 ├─ src/
-│   ├─ Engine/
-│   │   ├─ EngineCore.h
-│   │   ├─ EngineCore.cpp
-│   │   ├─ ... (other engine-related classes)
-│   └─ Game/
-│       ├─ GameLogic.h
-│       ├─ GameLogic.cpp
-│       ├─ ... (other game-related classes)
+│   ├─ EngineCore.h
+│   ├─ EngineCore.cpp
+│   ├─ GameLogic.h
+│   ├─ GameLogic.cpp
+│   ├─ (other classes, one .h + one .cpp for each)
 │
 ├─ tests/
 │   └─ (Optional) Additional test resources if needed
@@ -44,16 +39,16 @@ SnapEngine/
 ├─ CMakeLists.txt
 ├─ SnapEngine.sln                # Visual Studio solution file
 └─ SnapEngine.vcxproj            # Visual Studio project file (if generated)
-Note: You may adjust naming and folder organization as required, but keep the “one header, one source file” pattern for each class.
+Note:
 
+You may further customize the naming or additional subfolders if needed, but each class should still follow the one .h and one .cpp practice.
+The main.cpp file acts as the entry point (and test harness).
 3. Build System & Dependencies
 3.1 CPM.cmake Integration
-We use CPM.cmake to fetch and manage external dependencies. Here is a brief outline for how to set up CPM.cmake in your CMakeLists.txt:
+We use CPM.cmake to fetch and manage external dependencies. Below is a brief outline on how to set up CPM in your top-level CMakeLists.txt:
 
-Include CPM.cmake in your project.
+Include CPM.cmake in your project:
 
-cmake
-Copy
 # CMakeLists.txt (top-level)
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project(SnapEngine VERSION 0.1.0)
@@ -67,20 +62,18 @@ CPMAddPackage(
 )
 
 # ...
-Link Dependencies to your targets:
+Then, link dependencies to your targets:
 
-cmake
-Copy
 add_executable(SnapEngine main.cpp)
 target_link_libraries(SnapEngine PRIVATE SomeLibrary)
-# ...
 Update docs/Dependencies.md:
+For each external dependency:
 
-List each dependency, including:
-Repository or Package name
-Version or Git commit used
-Purpose or brief description
-Keep this document up-to-date so ChatGPT or any contributor knows what is currently in use and why.
+Document the repository or package name
+Note the version or Git commit used
+Briefly explain its purpose
+Keep this document up-to-date so that any contributor knows what is currently in use and why.
+
 3.2 Updating Dependencies
 Whenever you add or modify dependencies:
 
@@ -89,14 +82,22 @@ Document the changes in docs/Dependencies.md (e.g., new version, usage notes).
 Test the entire engine to ensure nothing breaks.
 4. Source Code Conventions
 4.1 Class Files
-Each class lives in two files:
+Each class lives in two files under src/:
 
-.h (header): Class definition and public API documentation (Doxygen-style comments).
-.cpp (source): Implementation details + static test() function for unit testing.
+.h (header): Class definition and public API documentation (using Doxygen-style comments).
+.cpp (source): Implementation details + a static test() function for unit testing.
+For example:
+
+src/
+├─ EngineCore.h
+├─ EngineCore.cpp
+├─ GameLogic.h
+├─ GameLogic.cpp
+...
 4.2 Naming Conventions
 Classes: PascalCase (e.g., EngineCore, GameLogic).
-Public Methods: PascalCase (e.g., Initialize, Update, Render).
-Private/Protected Methods: camelCase (e.g., loadAssets).
+Public Methods: PascalCase (e.g., Initialize(), Update(), Render()).
+Private/Protected Methods: camelCase (e.g., loadAssets()).
 Member Variables: m_ prefix (e.g., m_windowWidth, m_isRunning).
 4.3 Documentation Style
 Use Doxygen-style comments for all public-facing methods and classes:
@@ -133,28 +134,24 @@ private:
 };
 Key Points:
 
-Brief Summary: A short description of what the function does.
+Brief Summary: A short description of what the function/class does.
 Parameters: Describe each parameter.
 Return Value: Describe what is returned.
 Additional: Mention exceptions thrown, pre/post-conditions, usage notes, etc., if applicable.
 4.4 Maintaining API Documentation
-We keep a single reference in docs/API_Documentation.md that outlines:
-
+Keep a single reference document, docs/API_Documentation.md, outlining:
 Each class name
-Public functions and a high-level summary
+Public functions and a brief summary
 Cross-links to the relevant header files for deeper detail (if needed)
-Ensure any addition or change to public APIs is reflected in docs/API_Documentation.md.
-
+Any addition or change to public APIs must be reflected in docs/API_Documentation.md.
 5. Testing & Test Functions
 Static test() Method
-
-Every class has a static void test() to run internal unit tests.
-Use <cassert> or a testing framework as desired, but keep it self-contained.
+Every class has a static void test() method for basic unit testing.
+Use <cassert> or a small testing framework, but keep it self-contained if possible.
 Test Conventions
-
 Verify both normal and edge cases.
-Print out statements indicating test progress and results.
-Example of a test function in EngineCore.cpp:
+Print statements indicating test progress and results.
+Example in EngineCore.cpp:
 
 void EngineCore::test()
 {
@@ -163,35 +160,31 @@ void EngineCore::test()
     bool initResult = Initialize(800, 600);
     assert(initResult && "EngineCore initialization failed!");
 
-    // More tests...
+    // Additional tests...
 
     Shutdown();
     std::cout << "[EngineCore] Tests passed!\n";
 }
-Optional: Keep a small test framework or macros if you find yourselves repeating a lot of test patterns.
+If the project grows, consider a small custom test framework or macros if you find yourself repeating patterns.
 
 6. Main Entry Point
-A single main() function in main.cpp should:
+A single main() function (in main.cpp) should handle:
 
-Parse Command-Line Arguments
-
---test or -t triggers the test mode.
-Otherwise, run the game.
-Run Tests
-
+Command-Line Arguments
+--test or -t triggers test mode.
+Running Tests
 Call each class’s test() method.
 Print pass/fail messages to console.
-Run the Game
-
+Running the Game
 Initialize the engine (and other subsystems).
 Enter the main loop.
-On exit, shut everything down cleanly.
-Example main.cpp
+On exit, shut down cleanly.
+Example main.cpp:
 
 #include <iostream>
 #include <string>
-#include "Engine/EngineCore.h"
-#include "Game/GameLogic.h"
+#include "EngineCore.h"
+#include "GameLogic.h"
 
 int main(int argc, char* argv[])
 {
@@ -211,7 +204,7 @@ int main(int argc, char* argv[])
         std::cout << "Running SnapEngine tests...\n";
         EngineCore::test();
         GameLogic::test();
-        // Add more tests as needed
+        // Add more tests if needed
         std::cout << "Tests completed.\n";
     }
     else
@@ -237,37 +230,39 @@ int main(int argc, char* argv[])
     return 0;
 }
 7. Collaboration & Continuous Integration
-Version Control: Use Git or similar. Commit often, with clear messages.
-Branching: Adopt a feature-branch workflow (e.g., feature/<name>) and merge via PRs into main or dev.
-CI/CD (Optional but recommended):
-Automate builds and tests in platforms like GitHub Actions, Azure DevOps, or GitLab CI.
-On each commit or PR, the pipeline should:
+Version Control: Use Git (or similar). Commit often, with clear messages.
+Branching: Adopt a feature-branch workflow (e.g., feature/<name>) and merge via pull requests into main or dev.
+CI/CD (optional but recommended):
+Automate builds and tests in GitHub Actions, GitLab CI, Azure DevOps, etc.
+On each commit or pull request:
 Configure & build SnapEngine via CMake.
 Run all tests (--test).
-Report success or failure.
+Report success/failure to your repository.
 8. Documentation Maintenance
 API Documentation (docs/API_Documentation.md):
-Keep all class references and summaries up-to-date.
-Link to relevant .h files where detailed Doxygen comments exist.
+
+Keep references for all classes and their major methods.
+Cross-link to .h files for deeper detail.
 Dependencies (docs/Dependencies.md):
-For each external library:
-Document name, version, usage.
-Provide relevant configuration details if needed.
-Update this whenever you add, remove, or change a dependency.
+
+List all external libraries with:
+Name, version, usage purpose
+Special configuration details
+Update whenever you add/remove/change a dependency.
 SnapEngine Development Guidelines (docs/SnapEngine_Development_Guidelines.md):
+
 This very document.
 Update if coding styles, project structure, or other major guidelines change.
 9. Conclusion
-By following these guidelines:
+By following these updated guidelines:
 
-Structure: Each class is in its own header and source file.
-Documentation: Doxygen-style comments ensure clarity on public APIs.
+Structure: All .h and .cpp files reside under src/, with each class in its own pair of files.
+Documentation: Doxygen-style comments ensure clarity on public APIs, and docs are kept in docs/API_Documentation.md.
 Testing: Each class has a test() function to verify correctness.
-Build & Dependencies: CPM.cmake keeps external libraries organized and versions documented.
-Main Entry Point: A single main.cpp manages testing mode vs. runtime mode.
-Collaboration: Clear branching and CI keep the code stable and well-tested.
+Build & Dependencies: CPM.cmake keeps external libraries organized, with versions documented in docs/Dependencies.md.
+Main Entry Point: A single main.cpp handles command-line arguments, test mode, and normal runtime.
+Collaboration: Clear branching, version control, and CI keep the code stable and well-tested.
 Adhering to these guidelines ensures a clean, maintainable, and well-documented codebase that both humans and ChatGPT can easily navigate, contribute to, and extend.
 
 Happy Coding!
-
 SnapEngine Team

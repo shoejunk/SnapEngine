@@ -1,10 +1,15 @@
 @echo off
-:: Navigate to the build directory
-cd /d %~dp0build
+:: test.bat
+:: This batch file assumes you've already configured and built the project,
+:: and that the "build" folder is next to "test.bat" (i.e., SnapEngine/build).
 
-:: Run ctest with Debug configuration
+:: Push the current directory, then move into the build folder
+pushd %~dp0build
+
 echo Running tests with Debug configuration...
 ctest -C Debug -V
 
-:: Pause to allow the user to see the output
+:: Pop back to the original directory (root folder)
+popd
+
 pause

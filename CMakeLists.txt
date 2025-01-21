@@ -1,6 +1,4 @@
 cmake_minimum_required(VERSION 3.20)
-
-# Set the project name and specify it as a C++20 project
 project(SnapEngine LANGUAGES CXX)
 
 # Set the C++ standard to C++20
@@ -8,24 +6,52 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Include CPM.cmake for dependency management
+# Include CPM.cmake (dependency manager)
 include(cmake/CPM.cmake)
 
-# Define the main target for SnapEngine
-add_library(SnapEngine STATIC
-    src/SnapEngine.cpp
-    include/SnapEngine/SnapEngine.hpp
+# Add nlohmann/json package
+CPMAddPackage(
+  NAME nlohmann_json
+  VERSION 3.11.3
+  GITHUB_REPOSITORY nlohmann/json
+  OPTIONS
+    "JSON_BuildTests OFF"
 )
 
-# Specify include directories for SnapEngine
-target_include_directories(SnapEngine PUBLIC ${CMAKE_SOURCE_DIR}/include)
+# -------------------------------------------------------
+# Gather all source/header files in src/
+# -------------------------------------------------------
+file(GLOB_RECURSE SNAPENGINE_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+)
 
-# Add the main.cpp file as part of the executable target
+# -------------------------------------------------------
+# Create the SnapEngine library
+# -------------------------------------------------------
+add_library(SnapEngine STATIC ${SNAPENGINE_SOURCES})
+target_include_directories(SnapEngine PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+# -------------------------------------------------------
+# Create the main executable
+# -------------------------------------------------------
 add_executable(SnapEngineApp main.cpp)
-target_link_libraries(SnapEngineApp PRIVATE SnapEngine)
+target_link_libraries(SnapEngineApp PRIVATE SnapEngine nlohmann_json)
 
-# Enable testing (optional)
-if(PROJECT_IS_TOP_LEVEL)
-    enable_testing()
-    add_subdirectory(tests)
-endif()
+# -------------------------------------------------------
+# Enable Testing with CTest
+# -------------------------------------------------------
+enable_testing()
+
+# Create a test that calls SnapEngineApp in "--test" mode
+# This assumes "main.cpp" checks for "--test" and calls Window::test(), etc.
+add_test(
+    NAME SnapEngineAllTests
+    COMMAND SnapEngineApp --test
+)
+
+# By default, CMake places tests in the Debug configuration on Windows
+# when building multi-config (e.g., Visual Studio). The "-C Debug" part
+# in your .bat file will ensure Debug-mode tests are run.

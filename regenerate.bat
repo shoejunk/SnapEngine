@@ -3,6 +3,16 @@
 set BUILD_DIR=build
 set GENERATOR="Visual Studio 17 2022"
 
+:: Remove previous build directory if it exists
+if exist %BUILD_DIR% (
+    echo Removing existing build directory...
+    rmdir /s /q %BUILD_DIR%
+)
+
+:: Create a new build directory
+echo Creating build directory...
+mkdir %BUILD_DIR%
+
 :: Run CMake to generate project files
 echo Generating project files...
 cmake -S . -B %BUILD_DIR% -G %GENERATOR%
