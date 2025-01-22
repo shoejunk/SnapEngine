@@ -373,5 +373,86 @@ Throws `std::runtime_error` if a required JSON field is missing.
   "height": 720
 }
 
+DataManager
+Header: DataManager.h
+Source: DataManager.cpp
+
+Purpose
+DataManager loads a JSON file, expects an array of objects (each with a "class" field), and distributes these objects to the appropriate internal manager (e.g., WindowManager). The DataManager owns these managers, so the user does not need to manage them separately.
+
+Constructor
+DataManager(const std::string& filename)
+Description:
+Initializes the DataManager with the specified filename.
+
+Parameters:
+filename – The path to the JSON file that will be loaded.
+
+bool LoadData()
+Description:
+Opens and parses the JSON file. Iterates through each element in the JSON array, checking the "class" field. If "class" is "window", the JSON object is passed to the WindowManager.
+
+Return Value:
+Returns true if the file was opened and parsed successfully, false otherwise.
+
+Exceptions/Edge Cases:
+
+Prints an error if the file cannot be opened.
+Prints an error if the JSON does not contain an array.
+Prints a warning if an object lacks a "class" field or if the "class" is unsupported.
+void CreateManagedObjects()
+Description:
+Invokes createObjects() on each manager owned by the DataManager. Currently, it only calls WindowManager::createObjects().
+
+Usage Notes:
+
+Call this after LoadData() to actually instantiate or process the objects within each manager.
+In more complex scenarios, you might call this after all managers have been configured or after user input.
+WindowManager& GetWindowManager()
+Description:
+Provides direct access to the underlying WindowManager.
+
+Return Value:
+A reference to the WindowManager instance.
+
+Usage Notes:
+Use this if you need to inspect or manipulate the WindowManager directly (e.g., checking how many windows are loaded, calling specialized methods, etc.).
+
+static void test()
+Description:
+Exercises a basic workflow of DataManager:
+
+Creates a small JSON file (test_data.json) with both valid and invalid class types.
+Loads the data via LoadData().
+Asserts that only valid objects are passed to WindowManager.
+Calls CreateManagedObjects() to finalize creation.
+Usage Notes:
+
+Uses assert to check correct behavior.
+Prints progress and results to the console.
+Assumes file I/O works on the target system (Windows, in your case).
+Example JSON
+Below is a minimal JSON array used by DataManager:
+
+[
+  {
+    "class": "window",
+    "title": "Main Window",
+    "width": 1280,
+    "height": 720
+  },
+  {
+    "class": "window",
+    "title": "Secondary Window",
+    "width": 640,
+    "height": 480
+  }
+]
+Typical Usage Workflow
+Instantiate DataManager with a path to a JSON file.
+Load data by calling LoadData().
+Create actual engine objects by calling CreateManagedObjects().
+Optionally, access WindowManager or other managers for further operations.
+
 Happy Coding!
 SnapEngine Team

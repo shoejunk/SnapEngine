@@ -55,6 +55,15 @@ target_link_libraries(SnapEngineApp
 )
 
 # -------------------------------------------------------
+# Copy snapengine_data.json after build
+# -------------------------------------------------------
+add_custom_command(TARGET SnapEngineApp POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/snapengine_data.json"
+        $<TARGET_FILE_DIR:SnapEngineApp>
+)
+
+# -------------------------------------------------------
 # Enable Testing with CTest
 # -------------------------------------------------------
 enable_testing()

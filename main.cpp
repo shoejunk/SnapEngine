@@ -1,9 +1,11 @@
 #include <iostream>
 #include <string>
 #include <nlohmann/json.hpp> // Include nlohmann/json if not already
+
 #include "Window.h"
 #include "ManagerBase.h"
 #include "WindowManager.h"
+#include "DataManager.h"
 
 int main(int argc, char* argv[])
 {
@@ -24,11 +26,14 @@ int main(int argc, char* argv[])
     {
         std::cout << "Running SnapEngine tests...\n";
 
-        // Test the existing Window class
+        // Test the Window class
         Window::test();
 
-        // Test the new WindowManager
+        // Test the WindowManager
         WindowManager::test();
+
+        // Test the DataManager
+        DataManager::test();
 
         // ... call other test() methods from other classes if needed
 
@@ -36,32 +41,32 @@ int main(int argc, char* argv[])
     }
     else
     {
-        // Normal mode: Use WindowManager to create/manage windows from JSON data
+        // Normal mode: use DataManager to load JSON data, then create windows
         std::cout << "Welcome to SnapEngine!" << std::endl;
 
-        // Create a WindowManager
-        WindowManager windowManager;
+        // Create a DataManager with the JSON file we want to load
+        // Make sure snapengine_data.json is in the same directory as this main.cpp
+        DataManager dataManager("snapengine_data.json");
 
-        // Example JSON describing one or more windows
-        nlohmann::json mainWindowJson = {
-            {"title",  "My SnapEngine Window (Managed)"},
-            {"width",  800},
-            {"height", 600}
-        };
-
-        // Add the JSON object to WindowManager
-        windowManager.addJsonObject(mainWindowJson);
-
-        // Create all windows based on the stored JSON
-        try
+        if (!dataManager.LoadData())
         {
-            windowManager.createObjects();
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << "Failed to create window(s): " << e.what() << std::endl;
+            std::cerr << "Failed to load data from snapengine_data.json\n";
             return -1;
         }
+
+        // Ask DataManager to create all objects (e.g., windows)
+        try
+        {
+            dataManager.CreateManagedObjects();
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "Failed to create objects: " << e.what() << std::endl;
+            return -1;
+        }
+
+        // Get the WindowManager from the DataManager
+        WindowManager& windowManager = dataManager.GetWindowManager();
 
         // Main loop
         bool running = true;
