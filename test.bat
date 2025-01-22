@@ -7,7 +7,7 @@
 pushd %~dp0build
 
 echo Running tests with Debug configuration...
-ctest -C Debug -V
+ctest -C Release -V
 
 :: Pop back to the original directory (root folder)
 popd

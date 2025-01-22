@@ -58,7 +58,7 @@ Then, link dependencies to your targets:
 
 add_executable(SnapEngine main.cpp)
 target_link_libraries(SnapEngine PRIVATE SomeLibrary)
-Update docs/Dependencies.md:
+Update SnapEngine_Developement_Guidelines.txt:
 For each external dependency:
 
 Document the repository or package name
@@ -70,7 +70,7 @@ Keep this document up-to-date so that any contributor knows what is currently in
 Whenever you add or modify dependencies:
 
 Update the relevant CPMAddPackage entries in CMakeLists.txt.
-Document the changes in docs/Dependencies.md (e.g., new version, usage notes).
+Document the changes in SnapEngine_Developement_Guidelines.txt (e.g., new version, usage notes).
 Test the entire engine to ensure nothing breaks.
 4. Source Code Conventions
 4.1 Class Files
@@ -131,11 +131,11 @@ Parameters: Describe each parameter.
 Return Value: Describe what is returned.
 Additional: Mention exceptions thrown, pre/post-conditions, usage notes, etc., if applicable.
 4.4 Maintaining API Documentation
-Keep a single reference document, docs/API_Documentation.md, outlining:
+Keep a single reference document, SnapEngine_Developement_Guidelines.txt, outlining:
 Each class name
 Public functions and a brief summary
 Cross-links to the relevant header files for deeper detail (if needed)
-Any addition or change to public APIs must be reflected in docs/API_Documentation.md.
+Any addition or change to public APIs must be reflected in SnapEngine_Developement_Guidelines.txt.
 5. Testing & Test Functions
 Static test() Method
 Every class has a static void test() method for basic unit testing.
@@ -242,12 +242,23 @@ Update if coding styles, project structure, or other major guidelines change.
 By following these updated guidelines:
 
 Structure: All .h and .cpp files reside under src/, with each class in its own pair of files.
-Documentation: Doxygen-style comments ensure clarity on public APIs, and docs are kept in docs/API_Documentation.md.
+Documentation: Doxygen-style comments ensure clarity on public APIs, and docs are kept in SnapEngine_Developement_Guidelines.txt.
 Testing: Each class has a test() function to verify correctness.
-Build & Dependencies: CPM.cmake keeps external libraries organized, with versions documented in docs/Dependencies.md.
+Build & Dependencies: CPM.cmake keeps external libraries organized, with versions documented in SnapEngine_Developement_Guidelines.txt.
 Main Entry Point: A single main.cpp handles command-line arguments, test mode, and normal runtime.
 Collaboration: Clear branching, version control, and CI keep the code stable and well-tested.
 Adhering to these guidelines ensures a clean, maintainable, and well-documented codebase that both humans and ChatGPT can easily navigate, contribute to, and extend.
+
+Dependencies:
+Dependency: nlohmann json
+Repository: https://github.com/nlohmann/json
+Version: 3.11.3
+Purpose: Loads json files.
+
+Dependency: Assimp
+Repository: https://github.com/assimp/assimp
+Version: 5.2.5
+Purpose: Loads 3D model data from various file formats (OBJ, FBX, etc.).
 
 API Documentation:
 Window Class
@@ -453,6 +464,32 @@ Instantiate DataManager with a path to a JSON file.
 Load data by calling LoadData().
 Create actual engine objects by calling CreateManagedObjects().
 Optionally, access WindowManager or other managers for further operations.
+
+Model Class
+-----------
+Purpose:
+Stores and renders a 3D model loaded from file. Currently integrates with Assimp for loading
+common 3D formats (OBJ, FBX, etc.). Only tested on Windows.
+
+Public API:
+- Model()
+  Default constructor. No file loaded.
+
+- Model(const std::string& filePath)
+  Constructor that immediately loads the specified file.
+
+- bool LoadFromFile(const std::string& filePath)
+  Loads a 3D model from disk using Assimp.
+
+- void Draw() const
+  Draws the model. (Placeholder function that will require real rendering code.)
+
+- static void test()
+  Basic unit tests for loading and verifying model data.
+
+Dependencies:
+- Assimp (documented under "Dependencies"): https://github.com/assimp/assimp
+  MIT license, integrated with CPM.cmake. 
 
 Happy Coding!
 SnapEngine Team

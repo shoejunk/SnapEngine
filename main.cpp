@@ -6,6 +6,7 @@
 #include "ManagerBase.h"
 #include "WindowManager.h"
 #include "DataManager.h"
+#include "Model.h" // <-- Include Model header here
 
 int main(int argc, char* argv[])
 {
@@ -35,7 +36,8 @@ int main(int argc, char* argv[])
         // Test the DataManager
         DataManager::test();
 
-        // ... call other test() methods from other classes if needed
+        // Test the Model class
+        Model::test();
 
         std::cout << "All tests done.\n";
     }
@@ -45,9 +47,7 @@ int main(int argc, char* argv[])
         std::cout << "Welcome to SnapEngine!" << std::endl;
 
         // Create a DataManager with the JSON file we want to load
-        // Make sure snapengine_data.json is in the same directory as this main.cpp
         DataManager dataManager("snapengine_data.json");
-
         if (!dataManager.LoadData())
         {
             std::cerr << "Failed to load data from snapengine_data.json\n";
@@ -68,6 +68,17 @@ int main(int argc, char* argv[])
         // Get the WindowManager from the DataManager
         WindowManager& windowManager = dataManager.GetWindowManager();
 
+        // Load a 3D model (box.obj) via our Model class
+        Model myModel;
+        if (!myModel.LoadFromFile("test_assets/box.obj"))
+        {
+            std::cerr << "Failed to load 'test_assets/box.obj'." << std::endl;
+        }
+        else
+        {
+            std::cout << "Successfully loaded 'test_assets/box.obj'!" << std::endl;
+        }
+
         // Main loop
         bool running = true;
         while (running)
@@ -82,7 +93,12 @@ int main(int argc, char* argv[])
                 }
             }
 
+            // In a real engine, you'd call your rendering code here each frame.
+            // For now, we'll just call myModel.Draw() as a placeholder:
+            myModel.Draw();
+
             // TODO: Place your update/render calls here
+            // e.g., handle input, update game objects, etc.
         }
 
         std::cout << "Exiting SnapEngine." << std::endl;
