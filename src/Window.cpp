@@ -108,7 +108,7 @@ bool Window::ProcessMessages()
 
 	MSG msg = {};
 	// PeekMessageW (rather than PeekMessageA) when using Unicode
-	while (PeekMessageW(&msg, m_hWnd, 0, 0, PM_REMOVE))
+	while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
 	{
 		if (msg.message == WM_QUIT)
 		{
@@ -138,7 +138,7 @@ void Window::test()
 		{
 			break;
 		}
-		// Sleep a bit to simulate some “engine ticks”
+		// Sleep a bit to simulate some ï¿½engine ticksï¿½
 		Sleep(10);
 	}
 
