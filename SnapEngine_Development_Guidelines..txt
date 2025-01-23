@@ -1,495 +1,173 @@
 SnapEngine Development Guidelines
-These guidelines describe how to structure, build, document, and test SnapEngine, a C++20 game engine developed in Visual Studio. This document also outlines how dependencies will be managed using CPM.cmake, as well as how to maintain API and dependency documentation.
+
+This guide outlines the structure, development, documentation, and testing practices for SnapEngine, a C++20 game engine developed in Visual Studio. It also covers dependency management using CPM.cmake and API documentation practices.
 
 1. Project Overview
-Project Name: SnapEngine
-Language Standard: C++20
-IDE/Compiler: Visual Studio (MSVC)
-Dependency Manager: CPM.cmake
-SnapEngine aims to be a modular, testable, and well-documented framework for building games.
+- Project Name: SnapEngine
+- Language Standard: C++20
+- IDE/Compiler: Visual Studio (MSVC)
+- Dependency Manager: CPM.cmake
+- Goal: A modular, testable, and well-documented game engine.
 
 2. Repository Structure
-Below is a recommended folder layout. Notice that all .h and .cpp files live directly under src/, maintaining the “one header, one source file” pattern for each class.
-
 SnapEngine/
-│
 ├─ cmake/
-│   └─ cpm.cmake                 # Place or fetch CPM.cmake here
-│
+│   └─ cpm.cmake           # Dependency manager
 ├─ src/
-│   ├─ Window.h
-│   ├─ Window.cpp
-│   ├─ ManagerBase.h
-│   ├─ WindowManager.h
-│   ├─ WindowManager.cpp
-│   ├─ (other classes, one .h + one .cpp for each)
-│
-├─ main.cpp
-│
+│   ├─ ClassName.h
+│   ├─ ClassName.cpp
+│   ├─ (One header and source file per class)
+├─ main.cpp                # Entry point
 ├─ CMakeLists.txt
-├─ SnapEngine.sln                          # Visual Studio solution file
-└─ SnapEngine.vcxproj                      # Visual Studio project file (if generated)
-└─ SnapEngine_Development_Guidelines.txt   # (This file)
+├─ SnapEngine.sln          # Visual Studio solution
+└─ Development_Guidelines.txt
 
-Note:
+- Follow a "one .h and .cpp per class" convention.
+- Use main.cpp as the entry point and test harness.
 
-You may further customize the naming or additional subfolders if needed, but each class should still follow the one .h and one .cpp practice.
-The main.cpp file acts as the entry point (and test harness).
 3. Build System & Dependencies
 3.1 CPM.cmake Integration
-We use CPM.cmake to fetch and manage external dependencies. Below is a brief outline on how to set up CPM in your top-level CMakeLists.txt:
+Include cpm.cmake in your project:
 
-Include CPM.cmake in your project:
-
-# CMakeLists.txt (top-level)
-cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
-project(SnapEngine VERSION 0.1.0)
-
-include(cmake/cpm.cmake)  # Ensure 'cpm.cmake' is accessible here
-
-CPMAddPackage(
-    NAME SomeLibrary
-    GITHUB_REPOSITORY <user>/<repo>
-    VERSION <version>
-)
-
-# ...
-Then, link dependencies to your targets:
-
+include(cmake/cpm.cmake)
+CPMAddPackage(NAME SomeLibrary GITHUB_REPOSITORY <user>/<repo> VERSION <version>)
 add_executable(SnapEngine main.cpp)
 target_link_libraries(SnapEngine PRIVATE SomeLibrary)
-Update SnapEngine_Developement_Guidelines.txt:
-For each external dependency:
 
-Document the repository or package name
-Note the version or Git commit used
-Briefly explain its purpose
-Keep this document up-to-date so that any contributor knows what is currently in use and why.
+3.2 Dependency Documentation
+- Name: Assimp
+  Repo: https://github.com/assimp/assimp
+  Version: 5.2.5
+  Purpose: Loads 3D models.
 
-3.2 Updating Dependencies
-Whenever you add or modify dependencies:
+- Name: nlohmann JSON
+  Repo: https://github.com/nlohmann/json
+  Version: 3.11.3
+  Purpose: Handles JSON files.
 
-Update the relevant CPMAddPackage entries in CMakeLists.txt.
-Document the changes in SnapEngine_Developement_Guidelines.txt (e.g., new version, usage notes).
-Test the entire engine to ensure nothing breaks.
 4. Source Code Conventions
-4.1 Class Files
-Each class lives in two files under src/:
+- Classes & Methods: PascalCase (e.g., WindowManager, Initialize()).
+- Private Members: m_ prefix (e.g., m_windowWidth).
+- Documentation: Use Doxygen-style comments for public APIs.
 
-.h (header): Class definition and public API documentation (using Doxygen-style comments).
-.cpp (source): Implementation details + a static test() function for unit testing.
-For example:
-
-src/
-├─ EngineCore.h
-├─ EngineCore.cpp
-├─ GameLogic.h
-├─ GameLogic.cpp
-...
-4.2 Naming Conventions
-Classes: PascalCase (e.g., EngineCore, GameLogic).
-Public Methods: PascalCase (e.g., Initialize(), Update(), Render()).
-Private/Protected Methods: camelCase (e.g., loadAssets()).
-Member Variables: m_ prefix (e.g., m_windowWidth, m_isRunning).
-4.3 Documentation Style
-Use Doxygen-style comments for all public-facing methods and classes:
-
+Example:
 /// \class EngineCore
-/// \brief The core engine class responsible for managing the main loop.
-///
-/// Use this class to initialize the engine, run the game loop, and shut it down.
-
-class EngineCore
-{
+/// \brief Manages the engine's main loop.
+class EngineCore {
 public:
-    /// \brief Initializes the engine with specified parameters.
-    /// \param width The width of the window in pixels.
-    /// \param height The height of the window in pixels.
-    /// \return True if initialization succeeded, false otherwise.
+    /// Initializes the engine.
     static bool Initialize(int width, int height);
 
-    /// \brief Runs the main loop of the engine.
-    ///
-    /// This function blocks until the game exits.
+    /// Runs the main loop.
     static void Run();
 
-    /// \brief Shuts down the engine, releasing all resources.
+    /// Shuts down the engine.
     static void Shutdown();
-
-    /// \brief Runs the unit tests for the EngineCore class.
-    ///
-    /// Verifies initialization, run, and shutdown behaviors.
-    static void test();
-    
-private:
-    static bool m_isInitialized;
 };
-Key Points:
 
-Brief Summary: A short description of what the function/class does.
-Parameters: Describe each parameter.
-Return Value: Describe what is returned.
-Additional: Mention exceptions thrown, pre/post-conditions, usage notes, etc., if applicable.
-4.4 Maintaining API Documentation
-Keep a single reference document, SnapEngine_Developement_Guidelines.txt, outlining:
-Each class name
-Public functions and a brief summary
-Cross-links to the relevant header files for deeper detail (if needed)
-Any addition or change to public APIs must be reflected in SnapEngine_Developement_Guidelines.txt.
-5. Testing & Test Functions
-Static test() Method
-Every class has a static void test() method for basic unit testing.
-Use <cassert> or a small testing framework, but keep it self-contained if possible.
-Test Conventions
-Verify both normal and edge cases.
-Print statements indicating test progress and results.
-Example in EngineCore.cpp:
-
-void EngineCore::test()
-{
-    std::cout << "[EngineCore] Running tests...\n";
-    
-    bool initResult = Initialize(800, 600);
-    assert(initResult && "EngineCore initialization failed!");
-
-    // Additional tests...
-
-    Shutdown();
-    std::cout << "[EngineCore] Tests passed!\n";
+5. Testing
+- Each class includes a static test() function for unit testing using <cassert>.
+- Example:
+void EngineCore::test() {
+    assert(Initialize(800, 600));
+    std::cout << "Tests passed!\n";
 }
-If the project grows, consider a small custom test framework or macros if you find yourself repeating patterns.
 
 6. Main Entry Point
-A single main() function (in main.cpp) should handle:
-
-Command-Line Arguments
---test or -t triggers test mode.
-Running Tests
-Call each class’s test() method.
-Print pass/fail messages to console.
-Running the Game
-Initialize the engine (and other subsystems).
-Enter the main loop.
-On exit, shut down cleanly.
-Example main.cpp:
-
-#include <iostream>
-#include <string>
-#include "EngineCore.h"
-#include "GameLogic.h"
-
-int main(int argc, char* argv[])
-{
-    bool runTests = false;
-
-    for (int i = 1; i < argc; ++i)
-    {
-        std::string arg = argv[i];
-        if (arg == "--test" || arg == "-t")
-        {
-            runTests = true;
-        }
-    }
-
-    if (runTests)
-    {
-        std::cout << "Running SnapEngine tests...\n";
-        EngineCore::test();
-        GameLogic::test();
-        // Add more tests if needed
-        std::cout << "Tests completed.\n";
-    }
-    else
-    {
-        if (!EngineCore::Initialize(1280, 720))
-        {
-            std::cerr << "Failed to initialize EngineCore.\n";
-            return -1;
-        }
-
-        if (!GameLogic::Initialize())
-        {
-            std::cerr << "Failed to initialize GameLogic.\n";
-            return -1;
-        }
-
-        EngineCore::Run();
-
-        GameLogic::Shutdown();
-        EngineCore::Shutdown();
-    }
-
-    return 0;
+The main() function supports:
+- Command-Line Arguments: --test runs tests.
+- Game Execution: Initializes and runs the engine.
+Example:
+if (runTests) {
+    EngineCore::test();
+} else {
+    EngineCore::Initialize(1280, 720);
+    EngineCore::Run();
+    EngineCore::Shutdown();
 }
-7. Collaboration & Continuous Integration
-Version Control: Use Git (or similar). Commit often, with clear messages.
-Branching: Adopt a feature-branch workflow (e.g., feature/<name>) and merge via pull requests into main or dev.
-CI/CD (optional but recommended):
-Automate builds and tests in GitHub Actions, GitLab CI, Azure DevOps, etc.
-On each commit or pull request:
-Configure & build SnapEngine via CMake.
-Run all tests (--test).
-Report success/failure to your repository.
-8. Documentation Maintenance
-API Documentation:
 
-Keep references for all classes and their major methods.
-Cross-link to .h files for deeper detail.
+7. API Documentation
 
-This very document.
-Update if coding styles, project structure, or other major guidelines change.
-9. Conclusion
-By following these updated guidelines:
-
-Structure: All .h and .cpp files reside under src/, with each class in its own pair of files.
-Documentation: Doxygen-style comments ensure clarity on public APIs, and docs are kept in SnapEngine_Developement_Guidelines.txt.
-Testing: Each class has a test() function to verify correctness.
-Build & Dependencies: CPM.cmake keeps external libraries organized, with versions documented in SnapEngine_Developement_Guidelines.txt.
-Main Entry Point: A single main.cpp handles command-line arguments, test mode, and normal runtime.
-Collaboration: Clear branching, version control, and CI keep the code stable and well-tested.
-Adhering to these guidelines ensures a clean, maintainable, and well-documented codebase that both humans and ChatGPT can easily navigate, contribute to, and extend.
-
-Dependencies:
-Dependency: nlohmann json
-Repository: https://github.com/nlohmann/json
-Version: 3.11.3
-Purpose: Loads json files.
-
-Dependency: Assimp
-Repository: https://github.com/assimp/assimp
-Version: 5.2.5
-Purpose: Loads 3D model data from various file formats (OBJ, FBX, etc.).
-
-API Documentation:
 Window Class
-Purpose
-Encapsulates the creation and management of a single Win32 window (using Unicode APIs).
-Provides an API for opening the window, processing events, and verifying basic functionality in tests.
-Public API
-Constructor
-Window(const std::string& title, int width, int height);
-Sets the window’s title and desired client dimensions (width × height).
-Does not actually create/open the window; call Create() afterward.
-bool Create()
-Creates and displays the underlying Win32 window.
-Returns true on success, false if registration or creation fails.
-bool ProcessMessages()
-Pumps the window’s message queue (input, system events, etc.).
-Returns false if a close event is detected, indicating the window should shut down.
-HWND GetHandle() const (Optional if exposed)
-Retrieves the native Win32 handle (HWND) to the window, if needed for lower-level operations.
-static void test()
-Minimal test routine that creates a small window, asserts success, processes events briefly, and closes.
-Typical Usage
-#include "Window.h"
+Purpose: Manages a Win32 window.
+Public API:
+- Window(const std::string& title, int width, int height)
+  Sets the window's title and dimensions.
+- bool Create()
+  Creates the window.
+- bool ProcessMessages()
+  Handles events, returns false on close.
+- HWND GetHandle() (Optional)
+  Returns the native window handle.
+- static void test()
+  Verifies basic functionality.
 
-int main() {
-    // 1) Construct
-    Window myWindow("My Game Window", 800, 600);
-
-    // 2) Create (open) the Win32 window
-    if (!myWindow.Create()) {
-        // Handle error...
-        return -1;
-    }
-
-    // 3) Main loop
-    while (myWindow.ProcessMessages()) {
-        // Update, render, etc.
-    }
-
-    // 4) Exiting automatically destroys the window
-    return 0;
-}
+Example:
+Window window("My Game", 800, 600);
+if (!window.Create()) return -1;
+while (window.ProcessMessages()) {}
 
 ManagerBase Class
-Purpose
-An abstract base class that stores and processes nlohmann::json objects. Derived classes define how objects are created from these JSON entries.
+Purpose: Abstract base class for managing JSON objects.
+Public API:
+- void addJsonObject(const nlohmann::json& obj)
+  Adds a JSON object.
+- const std::vector<nlohmann::json>& getJsonObjects() const
+  Returns stored JSON objects.
+- virtual void createObjects() = 0
+  Derived classes implement this method.
 
-Public API
-
-void addJsonObject(const nlohmann::json& jsonObject)
-Adds a jsonObject to the internal storage.
-
-const std::vectornlohmann::json& getJsonObjects() const
-Returns a constant reference to the collection of stored JSON objects.
-
-virtual void createObjects() = 0
-Pure virtual method. Must be overridden by derived classes to process the stored JSON objects and create the desired objects.
-
-Example Usage
-
+Example Usage:
 ManagerBase* manager = new ExampleManager();
-nlohmann::json obj = { {"name", "example"} };
-manager->addJsonObject(obj);
+manager->addJsonObject({{"name", "example"}});
 manager->createObjects();
-ExampleManager Class
-Purpose
-A concrete implementation of ManagerBase that demonstrates how to create objects from the stored JSON data.
 
-Overrides
+WindowManager Class
+Purpose: Manages multiple windows using JSON data.
+Public API:
+- void createObjects() override
+  Creates Window instances based on JSON objects.
 
-void createObjects()
-Processes each stored JSON object and creates objects. Throws std::runtime_error if a required field is missing.
-Example Usage
-
-ExampleManager manager;
-nlohmann::json obj = { {"name", "example"} };
-manager.addJsonObject(obj);
-manager.createObjects(); // e.g., prints "Creating object with name: example"
-Typical Usage Workflow
-Instantiate a derived manager (e.g., ExampleManager).
-Call addJsonObject to insert JSON objects.
-Invoke the overridden createObjects to process and create objects based on the stored JSON.
-Notes
-
-Extend ManagerBase by implementing custom creation logic in createObjects.
-Ensure JSON objects have the required fields to avoid exceptions.
-Complete Example
-#include <nlohmann/json.hpp>
-#include <iostream>
-#include "ManagerBase.h"
-
-int main() {
-    ExampleManager manager;
-    nlohmann::json obj = { {"name", "example"} };
-
-    manager.addJsonObject(obj);
-    manager.createObjects(); // Outputs: "Creating object with name: example"
-
-    return 0;
-}
-
-## WindowManager Class
-
-**Header:** [`WindowManager.h`](../src/WindowManager.h)  
-**Source:** [`WindowManager.cpp`](../src/WindowManager.cpp)
-
-### Purpose
-`WindowManager` derives from `ManagerBase` and manages the creation of multiple `Window` instances from JSON objects.
-
-### Public API
-
----
-
-#### `void createObjects() override`
-Creates each `Window` based on the JSON data stored in `ManagerBase::getJsonObjects()`.
-Throws `std::runtime_error` if a required JSON field is missing.
-
-**Example JSON**:
-```json
-{
-  "title": "My Window",
-  "width": 1280,
-  "height": 720
-}
-
-DataManager
-Header: DataManager.h
-Source: DataManager.cpp
-
-Purpose
-DataManager loads a JSON file, expects an array of objects (each with a "class" field), and distributes these objects to the appropriate internal manager (e.g., WindowManager). The DataManager owns these managers, so the user does not need to manage them separately.
-
-Constructor
-DataManager(const std::string& filename)
-Description:
-Initializes the DataManager with the specified filename.
-
-Parameters:
-filename – The path to the JSON file that will be loaded.
-
-bool LoadData()
-Description:
-Opens and parses the JSON file. Iterates through each element in the JSON array, checking the "class" field. If "class" is "window", the JSON object is passed to the WindowManager.
-
-Return Value:
-Returns true if the file was opened and parsed successfully, false otherwise.
-
-Exceptions/Edge Cases:
-
-Prints an error if the file cannot be opened.
-Prints an error if the JSON does not contain an array.
-Prints a warning if an object lacks a "class" field or if the "class" is unsupported.
-void CreateManagedObjects()
-Description:
-Invokes createObjects() on each manager owned by the DataManager. Currently, it only calls WindowManager::createObjects().
-
-Usage Notes:
-
-Call this after LoadData() to actually instantiate or process the objects within each manager.
-In more complex scenarios, you might call this after all managers have been configured or after user input.
-WindowManager& GetWindowManager()
-Description:
-Provides direct access to the underlying WindowManager.
-
-Return Value:
-A reference to the WindowManager instance.
-
-Usage Notes:
-Use this if you need to inspect or manipulate the WindowManager directly (e.g., checking how many windows are loaded, calling specialized methods, etc.).
-
-static void test()
-Description:
-Exercises a basic workflow of DataManager:
-
-Creates a small JSON file (test_data.json) with both valid and invalid class types.
-Loads the data via LoadData().
-Asserts that only valid objects are passed to WindowManager.
-Calls CreateManagedObjects() to finalize creation.
-Usage Notes:
-
-Uses assert to check correct behavior.
-Prints progress and results to the console.
-Assumes file I/O works on the target system (Windows, in your case).
-Example JSON
-Below is a minimal JSON array used by DataManager:
-
+Example JSON:
 [
-  {
-    "class": "window",
-    "title": "Main Window",
-    "width": 1280,
-    "height": 720
-  },
-  {
-    "class": "window",
-    "title": "Secondary Window",
-    "width": 640,
-    "height": 480
-  }
+  {"title": "Main Window", "width": 1280, "height": 720},
+  {"title": "Secondary Window", "width": 640, "height": 480}
 ]
-Typical Usage Workflow
-Instantiate DataManager with a path to a JSON file.
-Load data by calling LoadData().
-Create actual engine objects by calling CreateManagedObjects().
-Optionally, access WindowManager or other managers for further operations.
+
+DataManager Class
+Purpose: Manages multiple managers and loads data from JSON files.
+Public API:
+- DataManager(const std::string& filename)
+  Loads a JSON file.
+- bool LoadData()
+  Parses and distributes JSON data to managers.
+- void CreateManagedObjects()
+  Calls createObjects() for all managers.
+
+Example JSON:
+[
+  {"class": "window", "title": "Game Window", "width": 800, "height": 600}
+]
+
+Usage:
+DataManager dataManager("config.json");
+dataManager.LoadData();
+dataManager.CreateManagedObjects();
 
 Model Class
------------
-Purpose:
-Stores and renders a 3D model loaded from file. Currently integrates with Assimp for loading
-common 3D formats (OBJ, FBX, etc.). Only tested on Windows.
-
+Purpose: Handles 3D models using Assimp.
 Public API:
-- Model()
-  Default constructor. No file loaded.
-
-- Model(const std::string& filePath)
-  Constructor that immediately loads the specified file.
-
 - bool LoadFromFile(const std::string& filePath)
-  Loads a 3D model from disk using Assimp.
-
-- void Draw() const
-  Draws the model. (Placeholder function that will require real rendering code.)
-
+  Loads a 3D model.
+- void Draw()
+  Renders the model.
 - static void test()
-  Basic unit tests for loading and verifying model data.
+  Verifies loading functionality.
 
-Dependencies:
-- Assimp (documented under "Dependencies"): https://github.com/assimp/assimp
-  MIT license, integrated with CPM.cmake. 
+8. Collaboration
+- Version Control: Use Git with a feature-branch workflow.
+- CI/CD: Automate builds and tests on commits and pull requests.
 
 Happy Coding!
 SnapEngine Team
+
