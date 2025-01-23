@@ -13,6 +13,14 @@
 class Model
 {
 public:
+    /// \brief A struct for holding CPU-side mesh data (now public for external access).
+    struct Mesh
+    {
+        std::vector<float>   vertices;  ///< Interleaved vertex data (pos, normal, uv, etc.)
+        std::vector<unsigned> indices;  ///< Index buffer
+        // Add more as needed (normals, tangents, material info, etc.)
+    };
+
     /// \brief Creates an empty model.
     Model();
 
@@ -32,20 +40,15 @@ public:
     /// the GPU.
     void Draw() const;
 
+    /// \brief Returns the number of meshes contained within the model.
+    size_t GetMeshCount() const { return m_meshes.size(); }
+
     /// \brief Runs the test suite for the Model class.
     ///
     /// Loads a small test model (if available), checks for valid data, etc.
     static void test();
 
 private:
-    /// \brief Internal struct for holding mesh data.
-    struct Mesh
-    {
-        std::vector<float>   vertices;  ///< Interleaved vertex data (pos, normal, uv, etc.)
-        std::vector<unsigned> indices;  ///< Index buffer
-        // Add more as needed (normals, tangents, material info, etc.)
-    };
-
     /// \brief Processes an Assimp scene recursively, extracting mesh data.
     /// \param scene The loaded Assimp scene.
     /// \param scenePath The file path (useful for relative resources).

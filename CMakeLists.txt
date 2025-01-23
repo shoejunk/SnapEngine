@@ -50,6 +50,9 @@ target_link_libraries(SnapEngine
     PUBLIC
         nlohmann_json
         assimp
+        d3d11  # Direct3D 11
+        dxgi   # DXGI for swap chain
+        dxguid # Direct3D GUID definitions
 )
 
 # -------------------------------------------------------------------
@@ -57,7 +60,13 @@ target_link_libraries(SnapEngine
 # -------------------------------------------------------------------
 add_executable(SnapEngineApp main.cpp)
 
-target_link_libraries(SnapEngineApp PRIVATE SnapEngine)
+target_link_libraries(SnapEngineApp
+    PRIVATE
+        SnapEngine
+        d3d11
+        dxgi
+        dxguid
+)
 
 # Copy snapengine_data.json after build
 add_custom_command(TARGET SnapEngineApp POST_BUILD

@@ -6,7 +6,10 @@
 #include "ManagerBase.h"
 #include "WindowManager.h"
 #include "DataManager.h"
-#include "Model.h" // <-- Include Model header here
+#include "Model.h"
+
+// Include your concrete renderer implementation, e.g. D3D11Renderer
+#include "D3D11Renderer.h" 
 
 int main(int argc, char* argv[])
 {
@@ -39,6 +42,10 @@ int main(int argc, char* argv[])
         // Test the Model class
         Model::test();
 
+        // If you have test() in your renderer classes:
+        // RendererBase::test();
+        // D3D11Renderer::test();
+
         std::cout << "All tests done.\n";
     }
     else
@@ -67,6 +74,30 @@ int main(int argc, char* argv[])
 
         // Get the WindowManager from the DataManager
         WindowManager& windowManager = dataManager.GetWindowManager();
+        auto& windows = windowManager.GetWindows();
+
+        if (windows.empty())
+        {
+            std::cerr << "No windows created; cannot continue.\n";
+            return -1;
+        }
+
+        // We'll just use the first window for rendering
+        Window* mainWindow = windows.front().get();
+        if (!mainWindow)
+        {
+            std::cerr << "Window pointer is null; cannot continue.\n";
+            return -1;
+        }
+
+        // Create a D3D11Renderer (or any other derived RendererBase you have)
+        D3D11Renderer renderer;
+        // Initialize it with the Win32 HWND from your Window class
+        if (!renderer.Initialize(static_cast<void*>(mainWindow->GetHandle())))
+        {
+            std::cerr << "Failed to initialize the D3D11Renderer.\n";
+            return -1;
+        }
 
         // Load a 3D model (box.obj) via our Model class
         Model myModel;
@@ -84,7 +115,7 @@ int main(int argc, char* argv[])
         while (running)
         {
             // Process messages for each window
-            for (auto& wPtr : windowManager.GetWindows())
+            for (auto& wPtr : windows)
             {
                 if (!wPtr->ProcessMessages())
                 {
@@ -93,11 +124,17 @@ int main(int argc, char* argv[])
                 }
             }
 
-            // In a real engine, you'd call your rendering code here each frame.
-            // For now, we'll just call myModel.Draw() as a placeholder:
-            myModel.Draw();
+            // ------ Rendering step ------
+            renderer.BeginFrame();
 
-            // TODO: Place your update/render calls here
+            // Draw the model
+            renderer.DrawModel(myModel);
+
+            // Present the frame
+            renderer.EndFrame();
+
+            // ---------------------------------------
+            // TODO: Place your update logic here
             // e.g., handle input, update game objects, etc.
         }
 
