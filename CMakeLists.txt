@@ -56,9 +56,36 @@ target_link_libraries(SnapEngine
 )
 
 # -------------------------------------------------------------------
+# Compile shaders using compile_shaders.bat
+# -------------------------------------------------------------------
+# Remove generator expression from directory creation
+set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/shaders")
+
+# Create directory immediately during configuration phase
+file(MAKE_DIRECTORY "${SHADER_OUTPUT_DIR}")
+
+add_custom_command(
+    OUTPUT 
+        "${SHADER_OUTPUT_DIR}/BasicVertexShader.cso"
+        "${SHADER_OUTPUT_DIR}/BasicPixelShader.cso"
+    COMMAND compile_shaders.bat "${SHADER_OUTPUT_DIR}"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Compiling HLSL shaders into .cso files"
+    VERBATIM
+)
+
+# Create a custom target that depends on the shader files
+add_custom_target(CompileShaders ALL
+    DEPENDS 
+        "${SHADER_OUTPUT_DIR}/BasicVertexShader.cso"
+        "${SHADER_OUTPUT_DIR}/BasicPixelShader.cso"
+)
+
+# -------------------------------------------------------------------
 # Create the main executable
 # -------------------------------------------------------------------
 add_executable(SnapEngineApp main.cpp)
+add_dependencies(SnapEngineApp CompileShaders)  # Ensure shaders compile first
 
 target_link_libraries(SnapEngineApp
     PRIVATE
@@ -78,6 +105,10 @@ add_custom_command(TARGET SnapEngineApp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/test_assets"
         "$<TARGET_FILE_DIR:SnapEngineApp>/test_assets"
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${SHADER_OUTPUT_DIR}"
+        "$<TARGET_FILE_DIR:SnapEngineApp>/shaders"
 )
 
 enable_testing()

@@ -1,25 +1,13 @@
 #pragma once
 
-/**
- * \file D3D11Renderer.h
- * \brief Direct3D 11-based implementation of RendererBase for SnapEngine on Windows.
- */
-
 #include "RendererBase.h"
 #include <d3d11.h>
 #include <dxgi.h>
 #include <wrl/client.h> // For Microsoft::WRL::ComPtr
+#include <DirectXMath.h> // For matrix math
 
-/**
- * \class D3D11Renderer
- * \brief Concrete renderer using Direct3D 11 on Windows.
- *
- * This class manages the D3D11 device, context, swap chain, and
- * basic rendering pipeline state. It can draw a Model's geometry
- * to the screen. 
- *
- * \note Assumes the caller is on Windows with the appropriate D3D11 libraries.
- */
+using namespace DirectX;
+
 class D3D11Renderer final : public RendererBase
 {
 public:
@@ -31,16 +19,26 @@ public:
     void DrawModel(const Model& model) override;
     void EndFrame() override;
 
-    /// \brief Runs basic tests for D3D11Renderer.
     static void test();
 
 private:
-    // D3D device, device context, swap chain, etc.
+    bool createRenderTarget();
+    bool loadShaders(const std::string& vsPath, const std::string& psPath);
+    bool createConstantBuffer(); // New function
+
+    struct Transform
+    {
+        XMMATRIX worldViewProj;
+    };
+
     Microsoft::WRL::ComPtr<ID3D11Device>           m_device;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext>    m_context;
     Microsoft::WRL::ComPtr<IDXGISwapChain>         m_swapChain;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_renderTargetView;
+    Microsoft::WRL::ComPtr<ID3D11VertexShader>     m_vertexShader;
+    Microsoft::WRL::ComPtr<ID3D11PixelShader>      m_pixelShader;
+    Microsoft::WRL::ComPtr<ID3D11InputLayout>      m_inputLayout;
 
-    /// \brief Creates the render target view from the back buffer.
-    bool createRenderTarget();
+    // New member for constant buffer
+    Microsoft::WRL::ComPtr<ID3D11Buffer>           m_constantBuffer;
 };
