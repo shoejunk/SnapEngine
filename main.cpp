@@ -7,8 +7,6 @@
 #include "WindowManager.h"
 #include "DataManager.h"
 #include "Model.h"
-
-// Include your concrete renderer implementation, e.g. D3D11Renderer
 #include "D3D11Renderer.h" 
 
 int main(int argc, char* argv[])
@@ -42,16 +40,15 @@ int main(int argc, char* argv[])
         // Test the Model class
         Model::test();
 
-        // If you have test() in your renderer classes:
-        // RendererBase::test();
-        // D3D11Renderer::test();
+        // Test the Renderer classes
+        RendererBase::test();
+        D3D11Renderer::test();
 
         std::cout << "All tests done.\n";
     }
     else
     {
-        // Normal mode: use DataManager to load JSON data, then create windows
-        std::cout << "Welcome to SnapEngine!" << std::endl;
+        std::cout << "Welcome to SnapEngine!\n";
 
         // Create a DataManager with the JSON file we want to load
         DataManager dataManager("snapengine_data.json");
@@ -61,7 +58,7 @@ int main(int argc, char* argv[])
             return -1;
         }
 
-        // Ask DataManager to create all objects (e.g., windows)
+        // Create all objects (e.g., windows)
         try
         {
             dataManager.CreateManagedObjects();
@@ -82,7 +79,7 @@ int main(int argc, char* argv[])
             return -1;
         }
 
-        // We'll just use the first window for rendering
+        // We'll use the first window for rendering
         Window* mainWindow = windows.front().get();
         if (!mainWindow)
         {
@@ -90,31 +87,39 @@ int main(int argc, char* argv[])
             return -1;
         }
 
-        // Create a D3D11Renderer (or any other derived RendererBase you have)
+        // Create and initialize a D3D11Renderer
         D3D11Renderer renderer;
-        // Initialize it with the Win32 HWND from your Window class
         if (!renderer.Initialize(static_cast<void*>(mainWindow->GetHandle())))
         {
             std::cerr << "Failed to initialize the D3D11Renderer.\n";
             return -1;
         }
 
-        // Load a 3D model (box.obj) via our Model class
+        // Load a 3D model (box.obj) via the Model class
         Model myModel;
-        if (!myModel.LoadFromFile("test_assets/box.obj"))
+        if (myModel.LoadFromFile("test_assets/box.obj"))
         {
-            std::cerr << "Failed to load 'test_assets/box.obj'." << std::endl;
+            std::cout << "Successfully loaded 'test_assets/box.obj'.\n";
+            std::cout << "Model contains " << myModel.GetMeshCount() << " meshes.\n";
+
+            for (size_t i = 0; i < myModel.GetMeshCount(); ++i)
+            {
+                const auto& mesh = myModel.GetMeshes()[i];
+                std::cout << "Mesh " << i << ": " << mesh.vertices.size() / 8 << " vertices, "
+                        << mesh.indices.size() << " indices.\n";
+            }
         }
         else
         {
-            std::cout << "Successfully loaded 'test_assets/box.obj'!" << std::endl;
+            std::cerr << "Failed to load 'test_assets/box.obj'.\n";
+            return -1;
         }
 
         // Main loop
         bool running = true;
         while (running)
         {
-            // Process messages for each window
+            // Process window messages
             for (auto& wPtr : windows)
             {
                 if (!wPtr->ProcessMessages())
@@ -124,21 +129,26 @@ int main(int argc, char* argv[])
                 }
             }
 
-            // ------ Rendering step ------
+            // Begin rendering
             renderer.BeginFrame();
 
-            // Draw the model
-            renderer.DrawModel(myModel);
+            // Draw the loaded model
+            if (myModel.GetMeshCount() > 0)
+            {
+                renderer.DrawModel(myModel);
+            }
+            else
+            {
+                std::cerr << "Model has no meshes to draw.\n";
+            }
 
-            // Present the frame
+            // End rendering
             renderer.EndFrame();
 
-            // ---------------------------------------
-            // TODO: Place your update logic here
-            // e.g., handle input, update game objects, etc.
+            // Additional logic can be added here
         }
 
-        std::cout << "Exiting SnapEngine." << std::endl;
+        std::cout << "Exiting SnapEngine.\n";
     }
 
     return 0;

@@ -72,6 +72,63 @@ bool D3D11Renderer::Initialize(void* windowHandle)
         return false;
     }
 
+    // 1. Create Depth-Stencil Buffer and View
+    D3D11_TEXTURE2D_DESC depthStencilDesc = {};
+    depthStencilDesc.Width = 800;   // Replace with your window width
+    depthStencilDesc.Height = 600; // Replace with your window height
+    depthStencilDesc.MipLevels = 1;
+    depthStencilDesc.ArraySize = 1;
+    depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depthStencilDesc.SampleDesc.Count = 1;
+    depthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
+    depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+    ComPtr<ID3D11Texture2D> depthStencilBuffer;
+    hr = m_device->CreateTexture2D(&depthStencilDesc, nullptr, &depthStencilBuffer);
+    if (FAILED(hr))
+    {
+        std::cerr << "[D3D11Renderer] Failed to create depth-stencil buffer. HRESULT: " << std::hex << hr << "\n";
+        return false;
+    }
+
+    ComPtr<ID3D11DepthStencilView> depthStencilView;
+    hr = m_device->CreateDepthStencilView(depthStencilBuffer.Get(), nullptr, &depthStencilView);
+    if (FAILED(hr))
+    {
+        std::cerr << "[D3D11Renderer] Failed to create depth-stencil view. HRESULT: " << std::hex << hr << "\n";
+        return false;
+    }
+
+    // Bind depth-stencil view to the output merger stage
+    m_context->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), depthStencilView.Get());
+
+    // 2. Create Depth-Stencil State
+    D3D11_DEPTH_STENCIL_DESC depthStencilStateDesc = {};
+    depthStencilStateDesc.DepthEnable = TRUE;
+    depthStencilStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    depthStencilStateDesc.DepthFunc = D3D11_COMPARISON_LESS;
+
+    ComPtr<ID3D11DepthStencilState> depthStencilState;
+    hr = m_device->CreateDepthStencilState(&depthStencilStateDesc, &depthStencilState);
+    if (FAILED(hr))
+    {
+        std::cerr << "[D3D11Renderer] Failed to create depth-stencil state. HRESULT: " << std::hex << hr << "\n";
+        return false;
+    }
+    m_context->OMSetDepthStencilState(depthStencilState.Get(), 1);
+
+    // 3. Set Viewport
+    D3D11_VIEWPORT viewport = {};
+    viewport.TopLeftX = 0;
+    viewport.TopLeftY = 0;
+    viewport.Width = static_cast<float>(1280);
+    viewport.Height = static_cast<float>(720);
+    viewport.MinDepth = 0.0f;
+    viewport.MaxDepth = 1.0f;
+
+    m_context->RSSetViewports(1, &viewport);
+
+    // Load shaders and create constant buffer
     if (!loadShaders("shaders/BasicVertexShader.cso", "shaders/BasicPixelShader.cso"))
     {
         std::cerr << "[D3D11Renderer] Failed to load shaders.\n";
@@ -213,8 +270,27 @@ void D3D11Renderer::BeginFrame()
 
 void D3D11Renderer::DrawModel(const Model& model)
 {
+    if (!model.GetMeshCount())
+    {
+        std::cerr << "[D3D11Renderer] No meshes to draw in the model.\n";
+        return;
+    }
+
     Transform transform = {};
-    transform.worldViewProj = XMMatrixTranspose(XMMatrixIdentity()); // Replace with actual WVP matrix
+    XMMATRIX world = XMMatrixIdentity(); // Default world transform
+    XMMATRIX view = XMMatrixLookAtLH(
+        XMVectorSet(0.0f, 2.0f, -5.0f, 1.0f), // Camera position
+        XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),  // Look-at point
+        XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)   // Up vector
+    );
+    XMMATRIX proj = XMMatrixPerspectiveFovLH(
+        XM_PIDIV4,   // Field of view (45 degrees)
+        800.0f / 600.0f, // Aspect ratio
+        0.1f,        // Near plane
+        100.0f       // Far plane
+    );
+
+    transform.worldViewProj = XMMatrixTranspose(world * view * proj);
 
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     HRESULT hr = m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
@@ -226,6 +302,7 @@ void D3D11Renderer::DrawModel(const Model& model)
     else
     {
         std::cerr << "[D3D11Renderer] Failed to map constant buffer. HRESULT: " << std::hex << hr << "\n";
+        return;
     }
 
     m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
@@ -233,7 +310,17 @@ void D3D11Renderer::DrawModel(const Model& model)
     m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
     m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
 
-    std::cout << "[D3D11Renderer] Drawing Model with " << model.GetMeshCount() << " mesh(es).\n";
+    for (const auto& mesh : model.GetMeshes())
+    {
+        Mesh gpuMesh;
+        if (!gpuMesh.CreateFromModelPart(m_device.Get(), mesh))
+        {
+            std::cerr << "Failed to create GPU buffers for a mesh.\n";
+            continue;
+        }
+
+        gpuMesh.Draw(m_context.Get());
+    }
 }
 
 void D3D11Renderer::EndFrame()

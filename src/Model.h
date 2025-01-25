@@ -43,6 +43,9 @@ public:
     /// \brief Returns the number of meshes contained within the model.
     size_t GetMeshCount() const { return m_meshes.size(); }
 
+    /// Returns a reference to the meshes in the model.
+    const std::vector<Mesh>& GetMeshes() const { return m_meshes; }
+
     /// \brief Runs the test suite for the Model class.
     ///
     /// Loads a small test model (if available), checks for valid data, etc.
