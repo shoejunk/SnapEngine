@@ -328,6 +328,24 @@ void D3D11Renderer::EndFrame()
     m_swapChain->Present(1, 0);
 }
 
+void D3D11Renderer::UpdateConstantBuffer(const DirectX::XMMATRIX& worldViewProj)
+{
+    D3D11_MAPPED_SUBRESOURCE mappedResource;
+    HRESULT hr = m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    if (FAILED(hr))
+    {
+        std::cerr << "[D3D11Renderer] Failed to map constant buffer. HRESULT: " << std::hex << hr << "\n";
+        return;
+    }
+
+    // Copy the transposed matrix to the constant buffer
+    memcpy(mappedResource.pData, &worldViewProj, sizeof(worldViewProj));
+    m_context->Unmap(m_constantBuffer.Get(), 0);
+
+    // Bind the constant buffer to the vertex shader
+    m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+}
+
 void D3D11Renderer::test()
 {
     std::cout << "[D3D11Renderer] Running tests...\n";

@@ -85,7 +85,7 @@ void Model::processMesh(const aiMesh* mesh, const aiScene* /*scene*/)
         }
         else
         {
-            // Fill with dummy normal if not available
+            std::cerr << "[Model] Warning: Mesh has no normals. Adding default normals.\n";
             outMesh.vertices.insert(outMesh.vertices.end(), {0.0f, 1.0f, 0.0f});
         }
 

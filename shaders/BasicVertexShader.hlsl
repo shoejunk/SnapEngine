@@ -1,22 +1,24 @@
-cbuffer Transform : register(b0)
+cbuffer TransformBuffer
 {
-    float4x4 worldViewProj; // Combined World, View, Projection matrix
+    matrix worldViewProj; // Ensure this matches the buffer in C++ code
 };
 
 struct VSInput
 {
-    float3 position : POSITION; // Input vertex position
-    float3 normal : NORMAL;     // Input vertex normal (not used here, but included for future use)
+    float3 position : POSITION;
+    float3 normal : NORMAL;
 };
 
-struct VSOutput
+struct PSInput
 {
-    float4 position : SV_POSITION; // Transformed vertex position (clip space)
+    float4 position : SV_POSITION;
+    float3 normal : NORMAL;
 };
 
-VSOutput main(VSInput input)
+PSInput main(VSInput input)
 {
-    VSOutput output;
-    output.position = mul(float4(input.position, 1.0), worldViewProj); // Apply transformation
+    PSInput output;
+    output.position = mul(float4(input.position, 1.0f), worldViewProj); // Apply the transformation
+    output.normal = input.normal; // Pass through the normal
     return output;
 }

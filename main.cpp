@@ -8,6 +8,11 @@
 #include "DataManager.h"
 #include "Model.h"
 #include "D3D11Renderer.h" 
+#include <DirectXMath.h>
+#include <chrono>
+
+using namespace DirectX;
+using Clock = std::chrono::high_resolution_clock;
 
 int main(int argc, char* argv[])
 {
@@ -95,30 +100,40 @@ int main(int argc, char* argv[])
             return -1;
         }
 
-        // Load a 3D model (box.obj) via the Model class
+        // Load a 3D model (example.obj) via the Model class
         Model myModel;
-        if (myModel.LoadFromFile("test_assets/box.obj"))
+        if (!myModel.LoadFromFile("test_assets/box.obj"))
         {
-            std::cout << "Successfully loaded 'test_assets/box.obj'.\n";
+            std::cerr << "Failed to load 'test_assets/box.obj'.\n";
+            return -1;
+        }
+        else
+        {
+            std::cout << "Successfully loaded 'test_assets/box.obj'!\n";
             std::cout << "Model contains " << myModel.GetMeshCount() << " meshes.\n";
 
             for (size_t i = 0; i < myModel.GetMeshCount(); ++i)
             {
                 const auto& mesh = myModel.GetMeshes()[i];
                 std::cout << "Mesh " << i << ": " << mesh.vertices.size() / 8 << " vertices, "
-                        << mesh.indices.size() << " indices.\n";
+                          << mesh.indices.size() << " indices.\n";
             }
         }
-        else
-        {
-            std::cerr << "Failed to load 'test_assets/box.obj'.\n";
-            return -1;
-        }
+
+        // Initialize rotation angle
+        float rotationAngle = 0.0f;
 
         // Main loop
         bool running = true;
+        float rotationSpeed = XM_PI / 2.0f; // Rotate 90 degrees per second
+        auto lastTime = Clock::now();
+
         while (running)
         {
+            auto currentTime = Clock::now();
+            std::chrono::duration<float> deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
             // Process window messages
             for (auto& wPtr : windows)
             {
@@ -128,6 +143,28 @@ int main(int argc, char* argv[])
                     break;
                 }
             }
+
+            // Increment rotation angle based on delta time
+            rotationAngle += rotationSpeed * deltaTime.count();
+            if (rotationAngle > XM_2PI)
+                rotationAngle -= XM_2PI;
+
+            // Update world-view-projection matrix with rotation
+            XMMATRIX world = XMMatrixRotationY(rotationAngle);
+            XMMATRIX view = XMMatrixLookAtLH(
+                XMVectorSet(0.0f, 2.0f, -5.0f, 1.0f), // Camera position
+                XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),  // Look-at point
+                XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)   // Up vector
+            );
+            XMMATRIX proj = XMMatrixPerspectiveFovLH(
+                XM_PIDIV4,   // Field of view (45 degrees)
+                800.0f / 600.0f, // Aspect ratio
+                0.1f,        // Near plane
+                100.0f       // Far plane
+            );
+            XMMATRIX worldViewProj = XMMatrixTranspose(world * view * proj);
+            std::cout << "Rotation angle: " << rotationAngle << "\n";
+            renderer.UpdateConstantBuffer(worldViewProj);
 
             // Begin rendering
             renderer.BeginFrame();
@@ -144,8 +181,6 @@ int main(int argc, char* argv[])
 
             // End rendering
             renderer.EndFrame();
-
-            // Additional logic can be added here
         }
 
         std::cout << "Exiting SnapEngine.\n";

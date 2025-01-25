@@ -18,6 +18,7 @@ public:
     void BeginFrame() override;
     void DrawModel(const Model& model) override;
     void EndFrame() override;
+    void UpdateConstantBuffer(const DirectX::XMMATRIX& worldViewProj);
 
     static void test();
 
