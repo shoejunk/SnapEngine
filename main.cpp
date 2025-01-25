@@ -117,6 +117,8 @@ int main(int argc, char* argv[])
                 const auto& mesh = myModel.GetMeshes()[i];
                 std::cout << "Mesh " << i << ": " << mesh.vertices.size() / 8 << " vertices, "
                           << mesh.indices.size() << " indices.\n";
+                std::cout << "Mesh " << i << " first vertex: "
+                        << mesh.vertices[0] << ", " << mesh.vertices[1] << ", " << mesh.vertices[2] << "\n";
             }
         }
 
@@ -146,11 +148,24 @@ int main(int argc, char* argv[])
 
             // Increment rotation angle based on delta time
             rotationAngle += rotationSpeed * deltaTime.count();
-            if (rotationAngle > XM_2PI)
-                rotationAngle -= XM_2PI;
+			if (rotationAngle > XM_2PI)
+				rotationAngle -= XM_2PI;
 
-            // Update world-view-projection matrix with rotation
-            XMMATRIX world = XMMatrixRotationY(rotationAngle);
+            // Update world matrix to rotate on both Y and X axes
+            XMMATRIX rotationY = XMMatrixRotationY(rotationAngle); // Rotate around Y-axis
+            XMMATRIX rotationX = XMMatrixRotationX(rotationAngle / 2.0f); // Rotate around X-axis (slower)
+            XMMATRIX world = rotationY * rotationX; // Combine rotations
+
+            XMFLOAT4X4 worldMatrixDebug;
+            XMStoreFloat4x4(&worldMatrixDebug, world);
+
+            // Log the world matrix
+            std::cout << "World Matrix:\n";
+            std::cout << worldMatrixDebug._11 << ", " << worldMatrixDebug._12 << ", " << worldMatrixDebug._13 << ", " << worldMatrixDebug._14 << "\n";
+            std::cout << worldMatrixDebug._21 << ", " << worldMatrixDebug._22 << ", " << worldMatrixDebug._23 << ", " << worldMatrixDebug._24 << "\n";
+            std::cout << worldMatrixDebug._31 << ", " << worldMatrixDebug._32 << ", " << worldMatrixDebug._33 << ", " << worldMatrixDebug._34 << "\n";
+            std::cout << worldMatrixDebug._41 << ", " << worldMatrixDebug._42 << ", " << worldMatrixDebug._43 << ", " << worldMatrixDebug._44 << "\n";
+
             XMMATRIX view = XMMatrixLookAtLH(
                 XMVectorSet(0.0f, 2.0f, -5.0f, 1.0f), // Camera position
                 XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),  // Look-at point
@@ -158,12 +173,13 @@ int main(int argc, char* argv[])
             );
             XMMATRIX proj = XMMatrixPerspectiveFovLH(
                 XM_PIDIV4,   // Field of view (45 degrees)
-                800.0f / 600.0f, // Aspect ratio
+                1280.0f / 720.0f, // Aspect ratio
                 0.1f,        // Near plane
                 100.0f       // Far plane
             );
             XMMATRIX worldViewProj = XMMatrixTranspose(world * view * proj);
             std::cout << "Rotation angle: " << rotationAngle << "\n";
+            
             renderer.UpdateConstantBuffer(worldViewProj);
 
             // Begin rendering

@@ -58,7 +58,6 @@ target_link_libraries(SnapEngine
 # -------------------------------------------------------------------
 # Compile shaders using compile_shaders.bat
 # -------------------------------------------------------------------
-# Remove generator expression from directory creation
 set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/shaders")
 
 # Create directory immediately during configuration phase
@@ -93,6 +92,11 @@ target_link_libraries(SnapEngineApp
         d3d11
         dxgi
         dxguid
+)
+
+# Set the working directory for Visual Studio to match the executable's directory
+set_target_properties(SnapEngineApp PROPERTIES 
+    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:SnapEngineApp>"
 )
 
 # Copy snapengine_data.json after build

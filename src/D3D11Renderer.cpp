@@ -28,7 +28,7 @@ bool D3D11Renderer::Initialize(void* windowHandle)
     }
 
     DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-    swapChainDesc.BufferCount = 1;
+    swapChainDesc.BufferCount = 2;
     swapChainDesc.BufferDesc.Width = 0;
     swapChainDesc.BufferDesc.Height = 0;
     swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -36,6 +36,7 @@ bool D3D11Renderer::Initialize(void* windowHandle)
     swapChainDesc.OutputWindow = hwnd;
     swapChainDesc.SampleDesc.Count = 1;
     swapChainDesc.Windowed = TRUE;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 
     UINT createDeviceFlags = 0;
 #ifdef _DEBUG
@@ -74,8 +75,8 @@ bool D3D11Renderer::Initialize(void* windowHandle)
 
     // 1. Create Depth-Stencil Buffer and View
     D3D11_TEXTURE2D_DESC depthStencilDesc = {};
-    depthStencilDesc.Width = 800;   // Replace with your window width
-    depthStencilDesc.Height = 600; // Replace with your window height
+    depthStencilDesc.Width = 1280;
+    depthStencilDesc.Height = 720;
     depthStencilDesc.MipLevels = 1;
     depthStencilDesc.ArraySize = 1;
     depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -276,6 +277,9 @@ void D3D11Renderer::DrawModel(const Model& model)
         return;
     }
 
+	// Set the primitive topology
+	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
     Transform transform = {};
     XMMATRIX world = XMMatrixIdentity(); // Default world transform
     XMMATRIX view = XMMatrixLookAtLH(
@@ -285,7 +289,7 @@ void D3D11Renderer::DrawModel(const Model& model)
     );
     XMMATRIX proj = XMMatrixPerspectiveFovLH(
         XM_PIDIV4,   // Field of view (45 degrees)
-        800.0f / 600.0f, // Aspect ratio
+        1280.0f / 720.0f, // Aspect ratio
         0.1f,        // Near plane
         100.0f       // Far plane
     );
