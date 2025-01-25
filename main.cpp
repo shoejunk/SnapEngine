@@ -152,9 +152,7 @@ int main(int argc, char* argv[])
 				rotationAngle -= XM_2PI;
 
             // Update world matrix to rotate on both Y and X axes
-            XMMATRIX rotationY = XMMatrixRotationY(rotationAngle); // Rotate around Y-axis
-            XMMATRIX rotationX = XMMatrixRotationX(rotationAngle / 2.0f); // Rotate around X-axis (slower)
-            XMMATRIX world = rotationY * rotationX; // Combine rotations
+            XMMATRIX world = XMMatrixRotationY(rotationAngle); // Rotate around Y-axis
 
             XMFLOAT4X4 worldMatrixDebug;
             XMStoreFloat4x4(&worldMatrixDebug, world);

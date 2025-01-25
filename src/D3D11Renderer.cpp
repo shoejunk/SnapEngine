@@ -271,60 +271,33 @@ void D3D11Renderer::BeginFrame()
 
 void D3D11Renderer::DrawModel(const Model& model)
 {
-    if (!model.GetMeshCount())
-    {
-        std::cerr << "[D3D11Renderer] No meshes to draw in the model.\n";
-        return;
-    }
+	if (!model.GetMeshCount())
+	{
+		std::cerr << "[D3D11Renderer] No meshes to draw in the model.\n";
+		return;
+	}
 
 	// Set the primitive topology
 	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    Transform transform = {};
-    XMMATRIX world = XMMatrixIdentity(); // Default world transform
-    XMMATRIX view = XMMatrixLookAtLH(
-        XMVectorSet(0.0f, 2.0f, -5.0f, 1.0f), // Camera position
-        XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f),  // Look-at point
-        XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)   // Up vector
-    );
-    XMMATRIX proj = XMMatrixPerspectiveFovLH(
-        XM_PIDIV4,   // Field of view (45 degrees)
-        1280.0f / 720.0f, // Aspect ratio
-        0.1f,        // Near plane
-        100.0f       // Far plane
-    );
+	// Bind the constant buffer, shaders, and input layout
+	m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+	m_context->IASetInputLayout(m_inputLayout.Get());
+	m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
+	m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
 
-    transform.worldViewProj = XMMatrixTranspose(world * view * proj);
+	// Draw all the meshes in the model
+	for (const auto& mesh : model.GetMeshes())
+	{
+		Mesh gpuMesh;
+		if (!gpuMesh.CreateFromModelPart(m_device.Get(), mesh))
+		{
+			std::cerr << "Failed to create GPU buffers for a mesh.\n";
+			continue;
+		}
 
-    D3D11_MAPPED_SUBRESOURCE mappedResource;
-    HRESULT hr = m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-    if (SUCCEEDED(hr))
-    {
-        memcpy(mappedResource.pData, &transform, sizeof(Transform));
-        m_context->Unmap(m_constantBuffer.Get(), 0);
-    }
-    else
-    {
-        std::cerr << "[D3D11Renderer] Failed to map constant buffer. HRESULT: " << std::hex << hr << "\n";
-        return;
-    }
-
-    m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
-    m_context->IASetInputLayout(m_inputLayout.Get());
-    m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-    m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-
-    for (const auto& mesh : model.GetMeshes())
-    {
-        Mesh gpuMesh;
-        if (!gpuMesh.CreateFromModelPart(m_device.Get(), mesh))
-        {
-            std::cerr << "Failed to create GPU buffers for a mesh.\n";
-            continue;
-        }
-
-        gpuMesh.Draw(m_context.Get());
-    }
+		gpuMesh.Draw(m_context.Get());
+	}
 }
 
 void D3D11Renderer::EndFrame()
@@ -336,11 +309,11 @@ void D3D11Renderer::UpdateConstantBuffer(const DirectX::XMMATRIX& worldViewProj)
 {
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     HRESULT hr = m_context->Map(m_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-    if (FAILED(hr))
-    {
-        std::cerr << "[D3D11Renderer] Failed to map constant buffer. HRESULT: " << std::hex << hr << "\n";
-        return;
-    }
+	if (FAILED(hr))
+	{
+		std::cerr << "[D3D11Renderer] Failed to map constant buffer. HRESULT: " << std::hex << hr << "\n";
+		return;
+	}
 
     // Copy the transposed matrix to the constant buffer
     memcpy(mappedResource.pData, &worldViewProj, sizeof(worldViewProj));
