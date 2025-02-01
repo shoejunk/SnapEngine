@@ -17,7 +17,7 @@ if not exist %BUILD_DIR% (
 )
 
 REM Navigate to the release directory
-cd %BUILD_DIR%\%CONFIG%
+cd %BUILD_DIR%\%CONFIG%\bin
 
 REM Check if the executable exists
 if not exist %EXECUTABLE% (
@@ -37,4 +37,4 @@ echo === Execution Failed ===
 exit /b 1
 
 :end
-cd ..\..
+cd ..\..\..

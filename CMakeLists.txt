@@ -1,155 +1,114 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.15)
 project(SnapEngine LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# -------------------------------------------------------------------
-# Force all libraries to be built statically (no .dll)
-# -------------------------------------------------------------------
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all libraries as static" FORCE)
-set(BUILD_UNIT_TESTS OFF CACHE BOOL "Disable Bullet3 unit tests" FORCE)
+# Function to set MSVC-specific options for a target
+function(set_msvc_options target)
+    if(MSVC)
+        get_target_property(target_type ${target} TYPE)
+        if(target_type STREQUAL "INTERFACE_LIBRARY")
+            target_compile_options(${target} INTERFACE 
+                /Zc:__cplusplus 
+                /Zc:preprocessor
+            )
+        else()
+            target_compile_options(${target} PRIVATE 
+                /Zc:__cplusplus 
+                /Zc:preprocessor
+            )
+        endif()
+    endif()
+endfunction()
 
 include(cmake/CPM.cmake)
 
-# Add all dependencies using CPM
+# Add dependencies
 CPMAddPackage(
     NAME nlohmann_json
     VERSION 3.11.3
-    GITHUB_REPOSITORY nlohmann/json
-    OPTIONS
-        "JSON_BuildTests=OFF"
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+    OPTIONS 
+        "JSON_BuildTests OFF"
 )
 
+# Add Assimp (this will bring in ZLIB)
 CPMAddPackage(
     NAME assimp
-    GITHUB_REPOSITORY assimp/assimp
     VERSION 5.2.5
-    OPTIONS
-        "ASSIMP_BUILD_TESTS=OFF"
-        "ASSIMP_BUILD_SAMPLES=OFF"
-        "ASSIMP_BUILD_DOCS=OFF"
-        "BUILD_SHARED_LIBS=OFF"
+    URL https://github.com/assimp/assimp/archive/refs/tags/v5.2.5.zip
+    OPTIONS 
+        "ASSIMP_BUILD_TESTS OFF"
+        "ASSIMP_INSTALL OFF"
+        "BUILD_SHARED_LIBS OFF"
+        "ASSIMP_BUILD_ZLIB YES"
 )
-
-# STB is header-only, so we just need to download it
-CPMAddPackage(
-    NAME stb
-    GITHUB_REPOSITORY nothings/stb
-    GIT_TAG master
-    DOWNLOAD_ONLY YES
-)
-
-if(stb_ADDED)
-    add_library(stb INTERFACE)
-    target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
-endif()
 
 CPMAddPackage(
     NAME glm
-    GITHUB_REPOSITORY g-truc/glm
-    GIT_TAG 0.9.9.8
+    VERSION 0.9.9.8
+    URL https://github.com/g-truc/glm/archive/refs/tags/0.9.9.8.zip
 )
 
-# Dear ImGui - Download and build as a static library
+# Add GLFW
 CPMAddPackage(
-    NAME imgui
-    GITHUB_REPOSITORY ocornut/imgui
-    VERSION 1.91.7
-    DOWNLOAD_ONLY YES
-)
-
-if(imgui_ADDED)
-    file(GLOB IMGUI_SOURCES
-        ${imgui_SOURCE_DIR}/*.cpp
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp
-    )
-    
-    add_library(imgui STATIC ${IMGUI_SOURCES})
-    target_include_directories(imgui PUBLIC 
-        ${imgui_SOURCE_DIR}
-        ${imgui_SOURCE_DIR}/backends
-    )
-    target_link_libraries(imgui PUBLIC d3d11)
-endif()
-
-CPMAddPackage(
-    NAME DirectXTK
-    GITHUB_REPOSITORY microsoft/DirectXTK
-    GIT_TAG main
+    NAME glfw
+    GITHUB_REPOSITORY glfw/glfw
+    GIT_TAG 3.3.9
     OPTIONS
-        "BUILD_XAUDIO_WIN10=OFF"
-        "BUILD_TOOLS=OFF"
+        "GLFW_BUILD_DOCS OFF"
+        "GLFW_BUILD_TESTS OFF"
+        "GLFW_BUILD_EXAMPLES OFF"
+        "GLFW_INSTALL OFF"
 )
 
-# -------------------------------------------------------------------
+# Add GLEW
+CPMAddPackage(
+    NAME glew
+    GITHUB_REPOSITORY Perlmint/glew-cmake
+    GIT_TAG glew-cmake-2.2.0
+    OPTIONS
+        "glew-cmake_BUILD_SHARED OFF"
+        "glew-cmake_BUILD_STATIC ON"
+)
+
+# Find OpenGL
+find_package(OpenGL REQUIRED)
+
 # Gather sources & create the SnapEngine static library
-# -------------------------------------------------------------------
 file(GLOB_RECURSE SNAPENGINE_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 )
 
 add_library(SnapEngine STATIC ${SNAPENGINE_SOURCES})
+set_msvc_options(SnapEngine)
 
 target_include_directories(SnapEngine PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
     "$<INSTALL_INTERFACE:src>"
-    ${DirectXTK_SOURCE_DIR}/Inc
+    ${glm_SOURCE_DIR}
 )
 
 target_link_libraries(SnapEngine
     PUBLIC
         nlohmann_json
         assimp
-        stb
         glm
-        imgui
-        DirectXTK
-        d3d11
-        dxgi
-        dxguid
+        glfw
+        libglew_static
+        OpenGL::GL
 )
 
-# -------------------------------------------------------------------
-# Compile shaders using compile_shaders.bat
-# -------------------------------------------------------------------
-set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/shaders")
-
-# Create directory immediately during configuration phase
-file(MAKE_DIRECTORY "${SHADER_OUTPUT_DIR}")
-
-add_custom_command(
-    OUTPUT 
-        "${SHADER_OUTPUT_DIR}/BasicVertexShader.cso"
-        "${SHADER_OUTPUT_DIR}/BasicPixelShader.cso"
-    COMMAND compile_shaders.bat "${SHADER_OUTPUT_DIR}"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Compiling HLSL shaders into .cso files"
-    VERBATIM
-)
-
-# Create a custom target that depends on the shader files
-add_custom_target(CompileShaders ALL
-    DEPENDS 
-        "${SHADER_OUTPUT_DIR}/BasicVertexShader.cso"
-        "${SHADER_OUTPUT_DIR}/BasicPixelShader.cso"
-)
-
-# -------------------------------------------------------------------
 # Create the main executable
-# -------------------------------------------------------------------
 add_executable(SnapEngineApp main.cpp)
-add_dependencies(SnapEngineApp CompileShaders)  # Ensure shaders compile first
+set_msvc_options(SnapEngineApp)
 
 target_link_libraries(SnapEngineApp
     PRIVATE
         SnapEngine
-        d3d11
-        dxgi
-        dxguid
 )
 
 # Set the working directory for Visual Studio to match the executable's directory
@@ -166,15 +125,9 @@ add_custom_command(TARGET SnapEngineApp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/test_assets"
         "$<TARGET_FILE_DIR:SnapEngineApp>/test_assets"
-
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${SHADER_OUTPUT_DIR}"
-        "$<TARGET_FILE_DIR:SnapEngineApp>/shaders"
 )
 
-# -------------------------------------------------------------------
 # Enable Testing
-# -------------------------------------------------------------------
 enable_testing()
 add_test(
     NAME SnapEngineAllTests

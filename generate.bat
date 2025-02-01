@@ -15,4 +15,3 @@ if %errorlevel% neq 0 (
 
 :: Notify the user
 echo Project files generated successfully in %BUILD_DIR%.
-pause

@@ -14,9 +14,16 @@
 class DataManager
 {
 public:
+    /// \brief Default constructor
+    DataManager() = default;
+
     /// \brief Constructs a DataManager with the given filename.
     /// \param filename The path to the JSON file containing the array of objects.
     explicit DataManager(const std::string& filename);
+
+    /// \brief Initialize the DataManager with default settings
+    /// \return True if initialization was successful, false otherwise
+    bool Initialize();
 
     /// \brief Loads and parses the JSON file, distributing objects to the appropriate manager(s).
     ///

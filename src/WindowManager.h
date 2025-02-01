@@ -27,11 +27,22 @@ public:
     /// \brief Default destructor
     ~WindowManager() = default;
 
+    /// \brief Initializes the window manager.
+    ///
+    /// Creates a default window if no windows have been created yet.
+    /// \return true if initialization was successful, false otherwise.
+    bool Initialize();
+
     /// \brief Creates all Window objects from the stored JSON data.
     ///
     /// Expects each JSON object to have the keys "title", "width", and "height".
     /// Throws std::runtime_error if a key is missing.
     void createObjects() override;
+
+    /// \brief Process messages for all windows.
+    ///
+    /// \return true if all windows are still open, false if any window should close.
+    bool ProcessMessages();
 
     /// \brief Runs the test suite for the WindowManager class.
     ///
@@ -46,4 +57,3 @@ public:
 private:
     std::vector<std::unique_ptr<Window>> m_windows; ///< Stores the created Window objects.
 };
-

@@ -8,8 +8,16 @@ DataManager::DataManager(const std::string& filename)
 {
 }
 
+bool DataManager::Initialize()
+{
+    m_filename = "snapengine_data.json";
+    std::cout << "DataManager initialized with file: " << m_filename << std::endl;
+    return true;
+}
+
 bool DataManager::LoadData()
 {
+    std::cout << "Attempting to load data from: " << m_filename << std::endl;
     std::ifstream file(m_filename);
     if (!file.is_open())
     {
@@ -21,6 +29,7 @@ bool DataManager::LoadData()
     try
     {
         file >> j;
+        std::cout << "Successfully parsed JSON data" << std::endl;
     }
     catch (const std::exception& e)
     {
@@ -34,6 +43,8 @@ bool DataManager::LoadData()
         return false;
     }
 
+    std::cout << "Found " << j.size() << " objects in JSON array" << std::endl;
+
     for (auto& obj : j)
     {
         if (!obj.contains("class"))
@@ -43,8 +54,11 @@ bool DataManager::LoadData()
         }
 
         std::string classType = obj["class"];
+        std::cout << "Processing object of class: " << classType << std::endl;
+        
         if (classType == "window" || classType == "Window")
         {
+            std::cout << "Found window object with title: " << obj["title"] << std::endl;
             m_windowManager.addJsonObject(obj);
         }
         else
@@ -59,6 +73,7 @@ bool DataManager::LoadData()
 
 void DataManager::CreateManagedObjects()
 {
+    std::cout << "Creating managed objects..." << std::endl;
     // For now, we only have a WindowManager.
     // In the future, call createObjects() on other managers here.
     m_windowManager.createObjects();
