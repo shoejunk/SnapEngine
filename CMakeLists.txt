@@ -33,11 +33,18 @@ CPMAddPackage(
         "BUILD_SHARED_LIBS=OFF"
 )
 
+# STB is header-only, so we just need to download it
 CPMAddPackage(
     NAME stb
     GITHUB_REPOSITORY nothings/stb
     GIT_TAG master
+    DOWNLOAD_ONLY YES
 )
+
+if(stb_ADDED)
+    add_library(stb INTERFACE)
+    target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
+endif()
 
 CPMAddPackage(
     NAME glm
@@ -45,55 +52,36 @@ CPMAddPackage(
     GIT_TAG 0.9.9.8
 )
 
-CPMAddPackage(
-    NAME bgfx
-    GITHUB_REPOSITORY bkaradzic/bgfx
-    GIT_TAG master
-    OPTIONS
-        "BGFX_BUILD_EXAMPLES=OFF"
-        "BGFX_BUILD_TOOLS=OFF"
-)
-
-# Box2D
-CPMAddPackage(
-    NAME box2d
-    GITHUB_REPOSITORY erincatto/box2d
-    VERSION 3.0.0
-)
-
-# Bullet Physics
-CPMAddPackage(
-    NAME bullet3
-    GITHUB_REPOSITORY bulletphysics/bullet3
-    GIT_TAG 3.25
-    OPTIONS
-        "BUILD_UNIT_TESTS=OFF"
-)
-
-# Dear ImGui
+# Dear ImGui - Download and build as a static library
 CPMAddPackage(
     NAME imgui
     GITHUB_REPOSITORY ocornut/imgui
     VERSION 1.91.7
+    DOWNLOAD_ONLY YES
 )
 
-# SoLoud
-CPMAddPackage(
-    NAME soloud
-    GITHUB_REPOSITORY jarikomppa/soloud
-    GIT_TAG RELEASE_20200207
-    OPTIONS
-        "BUILD_STATIC=ON"        # Build as a static library
-        "BUILD_SHARED=OFF"       # Avoid shared library builds
-        "BUILD_EXAMPLES=OFF"     # Disable example builds
-        "BUILD_TESTS=OFF"        # Disable test builds
-        "BUILD_BACKENDS=ON"      # Enable audio backends
-)
+if(imgui_ADDED)
+    file(GLOB IMGUI_SOURCES
+        ${imgui_SOURCE_DIR}/*.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp
+    )
+    
+    add_library(imgui STATIC ${IMGUI_SOURCES})
+    target_include_directories(imgui PUBLIC 
+        ${imgui_SOURCE_DIR}
+        ${imgui_SOURCE_DIR}/backends
+    )
+    target_link_libraries(imgui PUBLIC d3d11)
+endif()
 
 CPMAddPackage(
     NAME DirectXTK
     GITHUB_REPOSITORY microsoft/DirectXTK
     GIT_TAG main
+    OPTIONS
+        "BUILD_XAUDIO_WIN10=OFF"
+        "BUILD_TOOLS=OFF"
 )
 
 # -------------------------------------------------------------------
@@ -109,7 +97,7 @@ add_library(SnapEngine STATIC ${SNAPENGINE_SOURCES})
 target_include_directories(SnapEngine PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
     "$<INSTALL_INTERFACE:src>"
-	${DirectXTK_SOURCE_DIR}/Inc
+    ${DirectXTK_SOURCE_DIR}/Inc
 )
 
 target_link_libraries(SnapEngine
@@ -118,11 +106,8 @@ target_link_libraries(SnapEngine
         assimp
         stb
         glm
-        bgfx
-        box2d
-        bullet3
         imgui
-        soloud_static
+        DirectXTK
         d3d11
         dxgi
         dxguid

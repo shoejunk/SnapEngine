@@ -192,7 +192,69 @@ bool D3D11Renderer::Initialize(void* windowHandle)
 #endif
 }
 
-void D3D11Renderer::UpdateLightBuffer(const float3& lightDir)
+bool D3D11Renderer::loadShaders(const std::string& vsPath, const std::string& psPath)
+{
+    // Load vertex shader
+    std::ifstream vsFile(vsPath, std::ios::binary);
+    if (!vsFile.is_open())
+    {
+        std::cerr << "[D3D11Renderer] Failed to open vertex shader file: " << vsPath << "\n";
+        return false;
+    }
+
+    std::vector<char> vsData((std::istreambuf_iterator<char>(vsFile)), std::istreambuf_iterator<char>());
+    vsFile.close();
+
+    HRESULT hr = m_device->CreateVertexShader(vsData.data(), vsData.size(), nullptr, &m_vertexShader);
+    if (FAILED(hr))
+    {
+        std::cerr << "[D3D11Renderer] Failed to create vertex shader. HRESULT: " << std::hex << hr << "\n";
+        return false;
+    }
+
+    // Create input layout
+    D3D11_INPUT_ELEMENT_DESC layout[] = {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+    };
+
+    hr = m_device->CreateInputLayout(
+        layout,
+        ARRAYSIZE(layout),
+        vsData.data(),
+        vsData.size(),
+        &m_inputLayout
+    );
+
+    if (FAILED(hr))
+    {
+        std::cerr << "[D3D11Renderer] Failed to create input layout. HRESULT: " << std::hex << hr << "\n";
+        return false;
+    }
+
+    // Load pixel shader
+    std::ifstream psFile(psPath, std::ios::binary);
+    if (!psFile.is_open())
+    {
+        std::cerr << "[D3D11Renderer] Failed to open pixel shader file: " << psPath << "\n";
+        return false;
+    }
+
+    std::vector<char> psData((std::istreambuf_iterator<char>(psFile)), std::istreambuf_iterator<char>());
+    psFile.close();
+
+    hr = m_device->CreatePixelShader(psData.data(), psData.size(), nullptr, &m_pixelShader);
+    if (FAILED(hr))
+    {
+        std::cerr << "[D3D11Renderer] Failed to create pixel shader. HRESULT: " << std::hex << hr << "\n";
+        return false;
+    }
+
+    return true;
+}
+
+void D3D11Renderer::UpdateLightBuffer(const XMFLOAT3& lightDir)
 {
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     HRESULT hr = m_context->Map(m_lightBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
@@ -222,11 +284,6 @@ bool D3D11Renderer::createRenderTarget()
 
     hr = m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView);
     return SUCCEEDED(hr);
-}
-
-bool D3D11Renderer::loadShaders(const std::string& vsPath, const std::string& psPath)
-{
-    // Vertex shader and input layout loading code (unchanged from your current setup).
 }
 
 bool D3D11Renderer::createConstantBuffer()
@@ -271,19 +328,36 @@ void D3D11Renderer::DrawModel(const Model& model)
     m_context->IASetInputLayout(m_inputLayout.Get());
     m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
     m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-    m_context->PSSetShaderResources(0, 1, m_textureView.GetAddressOf()); // Bind texture
-    m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());       // Bind sampler
+    
+    // Only bind texture and sampler if we have a valid texture view
+    if (m_textureView)
+    {
+        m_context->PSSetShaderResources(0, 1, m_textureView.GetAddressOf());
+        m_context->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    }
 
     // Draw all the meshes in the model
-    for (const auto& mesh : model.GetMeshes())
+    static std::vector<Mesh> gpuMeshes;  // Cache GPU meshes
+    if (gpuMeshes.empty())
     {
-        Mesh gpuMesh;
-        if (!gpuMesh.CreateFromModelPart(m_device.Get(), mesh))
+        gpuMeshes.reserve(model.GetMeshCount());
+        for (const auto& mesh : model.GetMeshes())
         {
-            std::cerr << "[D3D11Renderer] Failed to create GPU buffers for a mesh.\n";
-            continue;
+            Mesh gpuMesh;
+            if (gpuMesh.CreateFromModelPart(m_device.Get(), mesh))
+            {
+                gpuMeshes.push_back(std::move(gpuMesh));
+            }
+            else
+            {
+                std::cerr << "[D3D11Renderer] Failed to create GPU buffers for a mesh.\n";
+            }
         }
+    }
 
+    // Draw all cached GPU meshes
+    for (const auto& gpuMesh : gpuMeshes)
+    {
         gpuMesh.Draw(m_context.Get());
     }
 }
@@ -309,4 +383,9 @@ void D3D11Renderer::UpdateConstantBuffer(const DirectX::XMMATRIX& worldViewProj)
 
     // Bind the constant buffer to the vertex shader
     m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
+}
+
+void D3D11Renderer::test()
+{
+    // Empty test function
 }

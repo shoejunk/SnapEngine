@@ -18,12 +18,12 @@ if not exist %BUILD_DIR% (
 REM Navigate to the build directory
 cd %BUILD_DIR%
 
-REM Run CMake configuration
-cmake -G %GENERATOR% ..
+REM Run CMake configuration with -Wno-dev to suppress developer warnings
+cmake -G %GENERATOR% -Wno-dev ..
 if errorlevel 1 goto :error
 
-REM Build the project
-cmake --build . --config Release
+REM Build the project with detailed output
+cmake --build . --config Release --verbose
 if errorlevel 1 goto :error
 
 echo === Build Completed Successfully ===

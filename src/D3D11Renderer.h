@@ -19,17 +19,24 @@ public:
     void DrawModel(const Model& model) override;
     void EndFrame() override;
     void UpdateConstantBuffer(const DirectX::XMMATRIX& worldViewProj);
+    void UpdateLightBuffer(const XMFLOAT3& lightDir);
 
     static void test();
 
 private:
     bool createRenderTarget();
     bool loadShaders(const std::string& vsPath, const std::string& psPath);
-    bool createConstantBuffer(); // New function
+    bool createConstantBuffer();
 
     struct Transform
     {
         XMMATRIX worldViewProj;
+    };
+
+    struct LightBuffer
+    {
+        XMFLOAT3 lightDir;
+        float padding;  // For 16-byte alignment required by DirectX
     };
 
     Microsoft::WRL::ComPtr<ID3D11Device>           m_device;
@@ -40,5 +47,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D11PixelShader>      m_pixelShader;
     Microsoft::WRL::ComPtr<ID3D11InputLayout>      m_inputLayout;
     Microsoft::WRL::ComPtr<ID3D11Buffer>           m_constantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer>           m_lightBuffer;
     Microsoft::WRL::ComPtr<ID3D11SamplerState>     m_samplerState;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_textureView;  // Added missing texture view
 };
