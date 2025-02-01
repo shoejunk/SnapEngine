@@ -39,7 +39,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D11VertexShader>     m_vertexShader;
     Microsoft::WRL::ComPtr<ID3D11PixelShader>      m_pixelShader;
     Microsoft::WRL::ComPtr<ID3D11InputLayout>      m_inputLayout;
-
-    // New member for constant buffer
     Microsoft::WRL::ComPtr<ID3D11Buffer>           m_constantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState>     m_samplerState;
 };

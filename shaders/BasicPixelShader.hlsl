@@ -1,17 +1,31 @@
+Texture2D tex : register(t0); // Bind texture to slot t0
+SamplerState samplerState : register(s0); // Bind sampler to slot s0
+
+cbuffer LightBuffer : register(b1)
+{
+    float3 lightDir; // Direction of the light
+};
+
 struct PSInput
 {
     float4 position : SV_POSITION;
-    float3 normal : NORMAL;
+    float2 uv : TEXCOORD;
+    float3 normal : NORMAL; // Incoming normal
 };
 
 float4 main(PSInput input) : SV_TARGET
 {
-    float3 lightDir = normalize(float3(0.0, -1.0, -1.0)); // Light direction
-    float3 normal = normalize(input.normal); // Normalize interpolated normal
+    // Normalize normal and light direction
+    float3 normalizedNormal = normalize(input.normal);
+    float3 normalizedLightDir = -normalize(lightDir);
 
-    // Simple diffuse lighting
-    float lightIntensity = max(dot(normal, lightDir), 0.0);
+    // Calculate diffuse lighting
+    float diffuse = max(dot(normalizedNormal, normalizedLightDir), 0.0);
 
-    float3 baseColor = float3(0.2, 0.5, 0.8); // Light blue color
-    return float4(baseColor * lightIntensity, 1.0); // Apply lighting
+    // Sample texture
+    float4 baseColor = tex.Sample(samplerState, input.uv);
+
+    // Add ambient lighting
+    float ambient = 0.1;
+    return saturate(baseColor * (diffuse + ambient));
 }

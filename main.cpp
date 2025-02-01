@@ -100,16 +100,16 @@ int main(int argc, char* argv[])
             return -1;
         }
 
-        // Load a 3D model (example.obj) via the Model class
+        // Load a 3D model via the Model class
         Model myModel;
-        if (!myModel.LoadFromFile("test_assets/box.obj"))
+        if (!myModel.LoadFromFile("test_assets/VibrantKnight/VibrantKnight.obj"))
         {
-            std::cerr << "Failed to load 'test_assets/box.obj'.\n";
+            std::cerr << "Failed to load 'test_assets/VibrantKnight/VibrantKnight.obj'.\n";
             return -1;
         }
         else
         {
-            std::cout << "Successfully loaded 'test_assets/box.obj'!\n";
+            std::cout << "Successfully loaded 'test_assets/VibrantKnight/VibrantKnight.obj'!\n";
             std::cout << "Model contains " << myModel.GetMeshCount() << " meshes.\n";
 
             for (size_t i = 0; i < myModel.GetMeshCount(); ++i)
@@ -123,11 +123,11 @@ int main(int argc, char* argv[])
         }
 
         // Initialize rotation angle
-        float rotationAngle = 0.0f;
+        float rotationAngle = 3.90f;
 
         // Main loop
         bool running = true;
-        float rotationSpeed = XM_PI / 2.0f; // Rotate 90 degrees per second
+        //float rotationSpeed = XM_PI / 2.0f; // Rotate 90 degrees per second
         auto lastTime = Clock::now();
 
         while (running)
@@ -146,23 +146,13 @@ int main(int argc, char* argv[])
                 }
             }
 
-            // Increment rotation angle based on delta time
-            rotationAngle += rotationSpeed * deltaTime.count();
-			if (rotationAngle > XM_2PI)
-				rotationAngle -= XM_2PI;
+   //         // Increment rotation angle based on delta time
+   //         rotationAngle += rotationSpeed * deltaTime.count();
+			//if (rotationAngle > XM_2PI)
+			//	rotationAngle -= XM_2PI;
 
             // Update world matrix to rotate on both Y and X axes
             XMMATRIX world = XMMatrixRotationY(rotationAngle); // Rotate around Y-axis
-
-            XMFLOAT4X4 worldMatrixDebug;
-            XMStoreFloat4x4(&worldMatrixDebug, world);
-
-            // Log the world matrix
-            std::cout << "World Matrix:\n";
-            std::cout << worldMatrixDebug._11 << ", " << worldMatrixDebug._12 << ", " << worldMatrixDebug._13 << ", " << worldMatrixDebug._14 << "\n";
-            std::cout << worldMatrixDebug._21 << ", " << worldMatrixDebug._22 << ", " << worldMatrixDebug._23 << ", " << worldMatrixDebug._24 << "\n";
-            std::cout << worldMatrixDebug._31 << ", " << worldMatrixDebug._32 << ", " << worldMatrixDebug._33 << ", " << worldMatrixDebug._34 << "\n";
-            std::cout << worldMatrixDebug._41 << ", " << worldMatrixDebug._42 << ", " << worldMatrixDebug._43 << ", " << worldMatrixDebug._44 << "\n";
 
             XMMATRIX view = XMMatrixLookAtLH(
                 XMVectorSet(0.0f, 2.0f, -5.0f, 1.0f), // Camera position
@@ -176,7 +166,6 @@ int main(int argc, char* argv[])
                 100.0f       // Far plane
             );
             XMMATRIX worldViewProj = XMMatrixTranspose(world * view * proj);
-            std::cout << "Rotation angle: " << rotationAngle << "\n";
             
             renderer.UpdateConstantBuffer(worldViewProj);
 

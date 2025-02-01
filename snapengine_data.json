@@ -4,15 +4,5 @@
         "title": "Main Game Window",
         "width": 1280,
         "height": 720
-    },
-    {
-        "class": "window",
-        "title": "Secondary Window",
-        "width": 640,
-        "height": 480
-    },
-    {
-        "class": "unknown",
-        "note": "This object will be skipped (log message) because 'unknown' is not a recognized class."
     }
 ]

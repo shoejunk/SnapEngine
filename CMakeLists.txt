@@ -12,6 +12,7 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all libraries as static" FORCE)
 
 include(cmake/CPM.cmake)
 
+# Add all dependencies using CPM
 CPMAddPackage(
     NAME nlohmann_json
     VERSION 3.11.3
@@ -29,6 +30,61 @@ CPMAddPackage(
         "ASSIMP_BUILD_SAMPLES=OFF"
         "ASSIMP_BUILD_DOCS=OFF"
         "BUILD_SHARED_LIBS=OFF"
+)
+
+CPMAddPackage(
+    NAME stb
+    GITHUB_REPOSITORY nothings/stb
+    GIT_TAG master
+)
+
+CPMAddPackage(
+    NAME glm
+    GITHUB_REPOSITORY g-truc/glm
+    GIT_TAG 0.9.9.8
+)
+
+CPMAddPackage(
+    NAME bgfx
+    GITHUB_REPOSITORY bkaradzic/bgfx
+    GIT_TAG master
+    OPTIONS
+        "BGFX_BUILD_EXAMPLES=OFF"
+        "BGFX_BUILD_TOOLS=OFF"
+)
+
+# Box2D
+CPMAddPackage(
+    NAME box2d
+    GITHUB_REPOSITORY erincatto/box2d
+    VERSION 3.0.0
+)
+
+# Bullet Physics
+CPMAddPackage(
+    NAME bullet3
+    GITHUB_REPOSITORY bulletphysics/bullet3
+    GIT_TAG 3.25
+)
+
+# Dear ImGui
+CPMAddPackage(
+    NAME imgui
+    GITHUB_REPOSITORY ocornut/imgui
+    VERSION 1.91.7
+)
+
+# SoLoud
+CPMAddPackage(
+    NAME soloud
+    GITHUB_REPOSITORY jarikomppa/soloud
+    GIT_TAG RELEASE_20200207
+    OPTIONS
+        "BUILD_STATIC=ON"        # Build as a static library
+        "BUILD_SHARED=OFF"       # Avoid shared library builds
+        "BUILD_EXAMPLES=OFF"     # Disable example builds
+        "BUILD_TESTS=OFF"        # Disable test builds
+        "BUILD_BACKENDS=ON"      # Enable audio backends
 )
 
 # -------------------------------------------------------------------
@@ -50,9 +106,16 @@ target_link_libraries(SnapEngine
     PUBLIC
         nlohmann_json
         assimp
-        d3d11  # Direct3D 11
-        dxgi   # DXGI for swap chain
-        dxguid # Direct3D GUID definitions
+        stb
+        glm
+        bgfx
+        box2d
+        bullet3
+        imgui
+        soloud_static
+        d3d11
+        dxgi
+        dxguid
 )
 
 # -------------------------------------------------------------------
@@ -99,13 +162,12 @@ set_target_properties(SnapEngineApp PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:SnapEngineApp>"
 )
 
-# Copy snapengine_data.json after build
+# Copy snapengine_data.json and assets after build
 add_custom_command(TARGET SnapEngineApp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/snapengine_data.json"
         $<TARGET_FILE_DIR:SnapEngineApp>
 
-    # Copy test_assets as well
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/test_assets"
         "$<TARGET_FILE_DIR:SnapEngineApp>/test_assets"
@@ -115,6 +177,9 @@ add_custom_command(TARGET SnapEngineApp POST_BUILD
         "$<TARGET_FILE_DIR:SnapEngineApp>/shaders"
 )
 
+# -------------------------------------------------------------------
+# Enable Testing
+# -------------------------------------------------------------------
 enable_testing()
 add_test(
     NAME SnapEngineAllTests
