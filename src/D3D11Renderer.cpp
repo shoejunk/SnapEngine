@@ -5,7 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
-#include "DirectXTK/WICTextureLoader.h"
+#include "WICTextureLoader.h"
 
 using Microsoft::WRL::ComPtr;
 

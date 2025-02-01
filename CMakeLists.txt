@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Force all libraries to be built statically (no .dll)
 # -------------------------------------------------------------------
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all libraries as static" FORCE)
+set(BUILD_UNIT_TESTS OFF CACHE BOOL "Disable Bullet3 unit tests" FORCE)
 
 include(cmake/CPM.cmake)
 
@@ -65,6 +66,8 @@ CPMAddPackage(
     NAME bullet3
     GITHUB_REPOSITORY bulletphysics/bullet3
     GIT_TAG 3.25
+    OPTIONS
+        "BUILD_UNIT_TESTS=OFF"
 )
 
 # Dear ImGui
@@ -87,6 +90,12 @@ CPMAddPackage(
         "BUILD_BACKENDS=ON"      # Enable audio backends
 )
 
+CPMAddPackage(
+    NAME DirectXTK
+    GITHUB_REPOSITORY microsoft/DirectXTK
+    GIT_TAG main
+)
+
 # -------------------------------------------------------------------
 # Gather sources & create the SnapEngine static library
 # -------------------------------------------------------------------
@@ -100,6 +109,7 @@ add_library(SnapEngine STATIC ${SNAPENGINE_SOURCES})
 target_include_directories(SnapEngine PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
     "$<INSTALL_INTERFACE:src>"
+	${DirectXTK_SOURCE_DIR}/Inc
 )
 
 target_link_libraries(SnapEngine
