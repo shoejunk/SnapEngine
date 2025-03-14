@@ -22,38 +22,39 @@ class WindowManager : public ManagerBase
 {
 public:
     /// \brief Default constructor
-    WindowManager() = default;
+    WindowManager() : m_testMode(false) {}
     
     /// \brief Default destructor
     ~WindowManager() = default;
 
     /// \brief Initializes the window manager.
-    ///
-    /// Creates a default window if no windows have been created yet.
-    /// \return true if initialization was successful, false otherwise.
+    /// \return True if initialization was successful.
     bool Initialize();
 
-    /// \brief Creates all Window objects from the stored JSON data.
-    ///
-    /// Expects each JSON object to have the keys "title", "width", and "height".
-    /// Throws std::runtime_error if a key is missing.
+    /// \brief Creates window objects from JSON data.
     void createObjects() override;
 
-    /// \brief Process messages for all windows.
-    ///
-    /// \return true if all windows are still open, false if any window should close.
+    /// \brief Process window messages.
+    /// \return True if all windows are still open.
     bool ProcessMessages();
 
-    /// \brief Runs the test suite for the WindowManager class.
-    ///
-    /// Creates a few windows via JSON data, ensures they are created properly.
-    static void test();
-
-    /// \brief Access all created Window instances.
-    ///
-    /// \return A const reference to the list of managed windows.
+    /// \brief Get the list of windows.
+    /// \return Vector of window pointers.
     const std::vector<std::unique_ptr<Window>>& GetWindows() const { return m_windows; }
 
+    /// \brief Enable or disable test mode.
+    /// In test mode, no actual GLFW windows are created.
+    /// \param enabled True to enable test mode.
+    void SetTestMode(bool enabled) { m_testMode = enabled; }
+
+    /// \brief Check if test mode is enabled.
+    /// \return True if test mode is enabled.
+    bool IsTestMode() const { return m_testMode; }
+
+    /// \brief Run unit tests for WindowManager.
+    static void test();
+
 private:
-    std::vector<std::unique_ptr<Window>> m_windows; ///< Stores the created Window objects.
+    std::vector<std::unique_ptr<Window>> m_windows;  ///< Collection of managed windows
+    bool m_testMode;                                 ///< True if running in test mode
 };

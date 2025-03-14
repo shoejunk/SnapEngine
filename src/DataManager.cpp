@@ -88,6 +88,9 @@ void DataManager::test()
 {
     std::cout << "[DataManager] Running tests...\n";
 
+    // Enable test mode for Window and WindowManager
+    Window::SetTestMode(true);
+
     // Create a temporary JSON file (or string) for testing.
     const char* testFilename = "test_data.json";
     {
@@ -104,13 +107,28 @@ void DataManager::test()
     bool loadResult = dm.LoadData();
     assert(loadResult && "DataManager failed to load test_data.json");
 
+    // Enable test mode for WindowManager
+    dm.GetWindowManager().SetTestMode(true);
+
     // We expect WindowManager to have 2 JSON objects now. (The "unknown" object is skipped.)
     const auto& windowObjects = dm.GetWindowManager().getJsonObjects();
     assert(windowObjects.size() == 2 && "WindowManager should have exactly 2 objects from test_data.json");
 
-    // Create the actual window objects (though in a real test, we'd do more sophisticated checks)
+    // Create the actual window objects
     dm.CreateManagedObjects();
 
-    // If we reached here with no asserts firing, the test is considered passed.
+    // Verify the created windows
+    const auto& windows = dm.GetWindowManager().GetWindows();
+    assert(windows.size() == 2 && "WindowManager should have created 2 windows");
+    assert(windows[0]->GetTitle() == "Test Window 1" && "First window title incorrect");
+    assert(windows[0]->GetWidth() == 400 && "First window width incorrect");
+    assert(windows[0]->GetHeight() == 300 && "First window height incorrect");
+    assert(windows[1]->GetTitle() == "Test Window 2" && "Second window title incorrect");
+    assert(windows[1]->GetWidth() == 800 && "Second window width incorrect");
+    assert(windows[1]->GetHeight() == 600 && "Second window height incorrect");
+
+    // Clean up - disable test mode
+    Window::SetTestMode(false);
+
     std::cout << "[DataManager] Tests passed!\n";
 }

@@ -1,0 +1,5 @@
+[
+            { "class": "window", "title": "Test Window 1", "width": 400, "height": 300 },
+            { "class": "window", "title": "Test Window 2", "width": 800, "height": 600 },
+            { "class": "unknown", "something": "ignored" }
+        ]

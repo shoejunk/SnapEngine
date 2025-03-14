@@ -7,6 +7,9 @@
 #include "WindowManager.h"
 #include "DataManager.h"
 #include "Model.h"
+#include "Mesh.h"
+#include "Vertex.h"
+#include "Tests.h"
 
 int main(int argc, char* argv[])
 {
@@ -25,52 +28,72 @@ int main(int argc, char* argv[])
 
     if (runTests)
     {
-        std::cout << "Running tests..." << std::endl;
-        Window::test();
-        WindowManager::test();
-        DataManager::test();
-        return 0;
+        return Tests::RunAllTests() ? 0 : 1;
     }
 
     try
     {
-        // Create and initialize the data manager
-        DataManager dataManager;
-        if (!dataManager.Initialize())
+        std::cout << "SnapEngine starting...\n";
+
+        // Initialize GLFW
+        if (!glfwInit())
         {
-            std::cerr << "Failed to initialize data manager" << std::endl;
+            std::cerr << "Failed to initialize GLFW" << std::endl;
             return 1;
         }
+        std::cout << "GLFW initialized successfully\n";
 
-        // Get window manager and initialize it first
-        WindowManager& windowManager = dataManager.GetWindowManager();
-        if (!windowManager.Initialize())
+        // Configure OpenGL context
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        std::cout << "OpenGL context configured\n";
+
+        // Create window
+        Window window("SnapEngine - VibrantKnight Demo", 1280, 720);
+        if (!window.Create())
         {
-            std::cerr << "Failed to initialize window manager" << std::endl;
+            std::cerr << "Failed to create window" << std::endl;
+            glfwTerminate();
             return 1;
         }
+        std::cout << "Window created successfully\n";
 
-        // Load JSON data
-        if (!dataManager.LoadData())
+        // Load VibrantKnight model
+        auto model = std::make_shared<Model>();
+        if (!model->LoadFromFile("test_assets/VibrantKnight/VibrantKnight.obj"))
         {
-            std::cerr << "Failed to load data" << std::endl;
+            std::cerr << "Failed to load VibrantKnight model" << std::endl;
+            glfwTerminate();
             return 1;
         }
+        std::cout << "VibrantKnight model loaded successfully\n";
 
-        // Create all managed objects from the loaded data
-        dataManager.CreateManagedObjects();
+        // Add model to scene
+        Scene* scene = window.GetScene();
+        scene->AddModel(model, 
+            glm::vec3(0.0f, -1.0f, 0.0f),     // Position slightly below origin
+            glm::vec3(0.1f, 0.1f, 0.1f),      // Scale down to reasonable size
+            glm::vec3(0.0f, 180.0f, 0.0f));   // Rotate to face camera
+        std::cout << "Model added to scene\n";
 
+        std::cout << "Entering main loop...\n";
         // Main loop
-        while (windowManager.ProcessMessages())
+        while (window.ProcessMessages())
         {
-            // TODO: Add rendering code here
+            // ProcessMessages handles everything now
         }
+
+        std::cout << "Main loop ended\n";
+
+        // Cleanup is handled by destructors
+        glfwTerminate();
+        return 0;
     }
     catch (const std::exception& e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
+        glfwTerminate();
         return 1;
     }
-
-    return 0;
 }

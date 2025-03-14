@@ -9,12 +9,14 @@
      bool ProcessMessages();
      int GetWidth() const;
      int GetHeight() const;
+     static void SetTestMode(bool enabled);
      static void test();
      ```
    - **Notes**:
      - Uses GLFW for window management and OpenGL for rendering
      - Automatically handles window resizing and input events
      - Supports modern OpenGL (4.6) core profile
+     - Test mode available for unit testing without actual window creation
 
 2. **ManagerBase Class**  
    - **Purpose**: Abstract base class for managing JSON objects.  
@@ -33,12 +35,14 @@
      void createObjects() override;  // Creates windows from JSON data
      bool ProcessMessages();  // Updates all windows
      const std::vector<std::unique_ptr<Window>>& GetWindows() const;
+     static void SetTestMode(bool enabled);
      static void test();
      ```
    - **Notes**:
      - Handles GLFW initialization and shutdown
      - Creates windows based on JSON configuration
      - Supports multiple windows
+     - Test mode available for unit testing
 
 4. **DataManager Class**  
    - **Purpose**: Manages multiple managers and loads data from JSON files.  
@@ -71,47 +75,79 @@
    - **Notes**:
      - Uses Assimp for model loading
      - Supports various 3D file formats
-     - Will use OpenGL for rendering (not yet implemented)
+     - Integrates with OpenGL for rendering
 
 6. **Mesh Class**  
-   - **Purpose**: Encapsulates GPU buffers (vertex, index) for a 3D mesh.  
+   - **Purpose**: Encapsulates OpenGL buffers (VAO, VBO, IBO) for a 3D mesh.  
    - **Public API**:  
      ```cpp
      Mesh();
      ~Mesh();
-     bool CreateFromModelPart(ID3D11Device* device, const Model::Mesh& srcMeshData);
-     void Draw(ID3D11DeviceContext* context) const;
+     bool CreateFromModelPart(const Model::Mesh& srcMeshData);
+     void Draw() const;
+     size_t GetVertexCount() const;
+     size_t GetIndexCount() const;
+     static void SetTestMode(bool enabled);
      static void test();
      ```
    - **Usage Example**:  
      ```cpp
      Mesh mesh;
-     if (mesh.CreateFromModelPart(device, model.GetMeshes().front())) {
-         mesh.Draw(context);
+     if (mesh.CreateFromModelPart(model.GetMeshes().front())) {
+         mesh.Draw();
      }
      ```
 
-7. **D3D11Renderer Class**  
-   - **Purpose**: Implements a basic Direct3D 11 renderer for SnapEngine.  
+7. **Shader Class**  
+   - **Purpose**: Manages OpenGL shader programs.  
    - **Public API**:  
      ```cpp
-     D3D11Renderer();
-     ~D3D11Renderer();
-     bool Initialize(void* windowHandle) override;
-     void BeginFrame() override;
-     void DrawModel(const Model& model) override;
-     void EndFrame() override;
-     void UpdateConstantBuffer(const DirectX::XMMATRIX& worldViewProj);
+     Shader();
+     bool LoadFromFile(const std::string& vertexPath, const std::string& fragmentPath);
+     void Use() const;
+     void SetBool(const std::string& name, bool value);
+     void SetInt(const std::string& name, int value);
+     void SetFloat(const std::string& name, float value);
+     void SetVec3(const std::string& name, const glm::vec3& value);
+     void SetVec4(const std::string& name, const glm::vec4& value);
+     void SetMat4(const std::string& name, const glm::mat4& value);
+     static void SetTestMode(bool enabled);
      static void test();
      ```
    - **Usage Example**:  
      ```cpp
-     D3D11Renderer renderer;
-     if (renderer.Initialize(windowHandle)) {
-         renderer.BeginFrame();
-         renderer.DrawModel(model);
-         renderer.EndFrame();
+     Shader shader;
+     if (shader.LoadFromFile("basic.vert", "basic.frag")) {
+         shader.Use();
+         shader.SetMat4("model", modelMatrix);
+         shader.SetVec3("lightPos", lightPosition);
      }
+     ```
+
+8. **Camera Class**  
+   - **Purpose**: Handles 3D camera movement and view/projection matrices.  
+   - **Public API**:  
+     ```cpp
+     Camera(const glm::vec3& position = glm::vec3(0.0f, 0.0f, 3.0f));
+     glm::mat4 GetViewMatrix() const;
+     glm::mat4 GetProjectionMatrix(float aspectRatio) const;
+     void ProcessKeyboard(Movement direction, float deltaTime);
+     void ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
+     void ProcessMouseScroll(float yoffset);
+     const glm::vec3& GetPosition() const;
+     const glm::vec3& GetFront() const;
+     float GetFov() const;
+     static void test();
+     ```
+   - **Usage Example**:  
+     ```cpp
+     Camera camera;
+     // Handle keyboard input
+     if (keyPressed[GLFW_KEY_W])
+         camera.ProcessKeyboard(Camera::FORWARD, deltaTime);
+     // Update shader
+     shader.SetMat4("view", camera.GetViewMatrix());
+     shader.SetMat4("projection", camera.GetProjectionMatrix(aspectRatio));
      ```
 
 #### **JSON Configuration**

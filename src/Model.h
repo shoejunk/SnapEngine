@@ -3,66 +3,97 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <glm/glm.hpp>
+#include "Shader.h"
+#include "Vertex.h"
+#include "Mesh.h"
+#include "Texture.h"
 
-/// \class Model
-/// \brief Stores and renders a 3D model loaded from file.
-///
-/// This class loads mesh data (vertices, indices, etc.) from a file using
-/// Assimp. The `Draw()` method is a placeholder and should be adapted to your
-/// chosen graphics API (e.g. DirectX, OpenGL, Vulkan).
+/**
+ * \class Model
+ * \brief A class to load and render 3D models.
+ */
 class Model
 {
 public:
-    /// \brief A struct for holding CPU-side mesh data (now public for external access).
-    struct Mesh
-    {
-        std::vector<float>   vertices;  ///< Interleaved vertex data (pos, normal, uv, etc.)
-        std::vector<unsigned> indices;  ///< Index buffer
-        // Add more as needed (normals, tangents, material info, etc.)
-    };
+    /**
+     * \brief Constructor.
+     */
+    Model() = default;
 
-    /// \brief Creates an empty model.
-    Model();
+    /**
+     * \brief Destructor.
+     */
+    ~Model() = default;
 
-    /// \brief Constructs and immediately loads a model from a file.
-    /// \param filePath The path to the 3D model file (e.g., .obj, .fbx).
-    Model(const std::string& filePath);
-
-    /// \brief Loads a model from the specified file path using Assimp.
-    /// \param filePath The path to the 3D model file.
-    /// \return True if loading was successful, false otherwise.
+    /**
+     * \brief Load model from file.
+     * \param filePath Path to model file.
+     * \return True if loading was successful.
+     */
     bool LoadFromFile(const std::string& filePath);
 
-    /// \brief Draws the model.
-    /// 
-    /// This is a placeholder function. In a real engine, you'd integrate this
-    /// with DirectX, OpenGL, or another rendering API to submit mesh data to
-    /// the GPU.
+    /**
+     * \brief Draw the model.
+     */
     void Draw() const;
 
-    /// \brief Returns the number of meshes contained within the model.
-    size_t GetMeshCount() const { return m_meshes.size(); }
-
-    /// Returns a reference to the meshes in the model.
-    const std::vector<Mesh>& GetMeshes() const { return m_meshes; }
-
-    /// \brief Runs the test suite for the Model class.
-    ///
-    /// Loads a small test model (if available), checks for valid data, etc.
+    /**
+     * \brief Run unit tests for Model class.
+     */
     static void test();
 
-private:
-    /// \brief Processes an Assimp scene recursively, extracting mesh data.
-    /// \param scene The loaded Assimp scene.
-    /// \param scenePath The file path (useful for relative resources).
-    void processScene(const struct aiScene* scene, const std::string& scenePath);
+    /**
+     * \brief Enable or disable test mode.
+     * \param enabled Whether to enable test mode.
+     */
+    static void SetTestMode(bool enabled) { s_testMode = enabled; }
 
-    /// \brief Processes a single Assimp mesh and stores it internally.
-    /// \param mesh The mesh data from Assimp.
-    /// \param scene The parent scene (for materials, etc.).
-    void processMesh(const struct aiMesh* mesh, const struct aiScene* scene);
+    /**
+     * \brief Check if test mode is enabled.
+     * \return Whether test mode is enabled.
+     */
+    static bool IsTestMode() { return s_testMode; }
 
 private:
-    std::vector<Mesh> m_meshes;
-    bool              m_isLoaded;
+    /**
+     * \brief Process an Assimp node.
+     * \param node The node to process.
+     * \param scene The Assimp scene.
+     */
+    void processNode(aiNode* node, const aiScene* scene);
+
+    /**
+     * \brief Process an Assimp mesh.
+     * \param mesh The mesh to process.
+     * \param scene The Assimp scene.
+     * \return The processed mesh.
+     */
+    Mesh processMesh(aiMesh* mesh, const aiScene* scene);
+
+    /**
+     * \brief Load textures from material.
+     * \param material The material to load textures from.
+     * \param type The type of textures to load.
+     * \param typeName The name of the texture type.
+     * \return Vector of loaded textures.
+     */
+    std::vector<Texture> loadMaterialTextures(aiMaterial* material, aiTextureType type, const std::string& typeName);
+
+    /**
+     * \brief Load texture from file.
+     * \param path Path to texture file.
+     * \param directory Directory containing texture file.
+     * \return OpenGL texture ID.
+     */
+    unsigned int TextureFromFile(const char* path, const std::string& directory);
+
+    std::string m_directory;                  ///< Directory containing model files
+    std::vector<Mesh> m_meshes;              ///< Model meshes
+    std::vector<Texture> m_loadedTextures;    ///< Loaded textures
+
+    static bool s_testMode;                   ///< Test mode flag
 };

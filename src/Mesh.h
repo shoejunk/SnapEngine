@@ -1,52 +1,115 @@
 #pragma once
 
-/**
- * \file Mesh.h
- * \brief Encapsulates GPU buffers (vertex, index) for a 3D mesh in SnapEngine.
- */
-
-#include <d3d11.h>
-#include <wrl/client.h>
+#include <GL/glew.h>
 #include <vector>
-
-#include "Model.h" // For Model::Mesh data
+#include <string>
+#include "Vertex.h"
+#include "Texture.h"
 
 /**
- * \class Mesh
- * \brief Holds Direct3D 11 buffers and metadata for a single 3D mesh.
- *
- * This class is responsible for creating GPU buffers from CPU mesh data
- * (vertex and index arrays) and issuing draw calls for that mesh.
+ * \struct Mesh
+ * \brief A mesh containing vertex and index data.
  */
-class Mesh
+struct Mesh
 {
-public:
+    std::vector<Vertex> vertices;      ///< Vertex data
+    std::vector<unsigned int> indices; ///< Index data
+    std::vector<Texture> textures;     ///< Texture data
+
+    // OpenGL buffer handles
+    mutable GLuint vao = 0;  ///< Vertex Array Object
+    mutable GLuint vbo = 0;  ///< Vertex Buffer Object
+    mutable GLuint ebo = 0;  ///< Element Buffer Object
+
+    /**
+     * \brief Default constructor.
+     */
     Mesh() = default;
-    ~Mesh();
 
     /**
-     * \brief Creates Direct3D buffers from a Model::Mesh struct.
-     * \param device A D3D11 device pointer.
-     * \param srcMeshData The CPU-side mesh data from a Model.
-     * \return True if buffers were created successfully.
+     * \brief Constructor.
+     * \param vertices Vector of vertices.
+     * \param indices Vector of indices.
+     * \param textures Vector of textures.
      */
-    bool CreateFromModelPart(ID3D11Device* device, const Model::Mesh& srcMeshData);
+    Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<Texture>& textures)
+        : vertices(vertices), indices(indices), textures(textures)
+    {
+        setupMesh();
+    }
 
     /**
-     * \brief Issues a draw call for this mesh using the provided device context.
-     * \param context A D3D11 device context for rendering.
+     * \brief Move constructor.
      */
-    void Draw(ID3D11DeviceContext* context) const;
+    Mesh(Mesh&& other) noexcept
+        : vertices(std::move(other.vertices))
+        , indices(std::move(other.indices))
+        , textures(std::move(other.textures))
+        , vao(other.vao)
+        , vbo(other.vbo)
+        , ebo(other.ebo)
+    {
+        other.vao = 0;
+        other.vbo = 0;
+        other.ebo = 0;
+    }
 
     /**
-     * \brief Basic test for the Mesh class.
+     * \brief Move assignment operator.
      */
-    static void test();
+    Mesh& operator=(Mesh&& other) noexcept
+    {
+        if (this != &other)
+        {
+            // Clean up existing resources
+            cleanup();
+
+            // Move resources
+            vertices = std::move(other.vertices);
+            indices = std::move(other.indices);
+            textures = std::move(other.textures);
+            vao = other.vao;
+            vbo = other.vbo;
+            ebo = other.ebo;
+
+            // Clear other's resources
+            other.vao = 0;
+            other.vbo = 0;
+            other.ebo = 0;
+        }
+        return *this;
+    }
+
+    /**
+     * \brief Destructor.
+     */
+    ~Mesh()
+    {
+        cleanup();
+    }
+
+    // Prevent copying (since we have OpenGL resources)
+    Mesh(const Mesh&) = delete;
+    Mesh& operator=(const Mesh&) = delete;
+
+    /**
+     * \brief Draw the mesh.
+     */
+    void Draw() const;
 
 private:
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer;
-    UINT m_vertexStride = 0;
-    UINT m_vertexCount  = 0;
-    UINT m_indexCount   = 0;
+    /**
+     * \brief Clean up OpenGL resources.
+     */
+    void cleanup()
+    {
+        if (vao != 0) glDeleteVertexArrays(1, &vao);
+        if (vbo != 0) glDeleteBuffers(1, &vbo);
+        if (ebo != 0) glDeleteBuffers(1, &ebo);
+    }
+
+    /**
+     * \brief Set up mesh buffers.
+     */
+    void setupMesh();
 };

@@ -5,6 +5,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Set output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
 # Function to set MSVC-specific options for a target
 function(set_msvc_options target)
     if(MSVC)
@@ -42,7 +47,7 @@ CPMAddPackage(
     OPTIONS 
         "ASSIMP_BUILD_TESTS OFF"
         "ASSIMP_INSTALL OFF"
-        "BUILD_SHARED_LIBS OFF"
+        "BUILD_SHARED_LIBS ON"
         "ASSIMP_BUILD_ZLIB YES"
 )
 
@@ -62,6 +67,7 @@ CPMAddPackage(
         "GLFW_BUILD_TESTS OFF"
         "GLFW_BUILD_EXAMPLES OFF"
         "GLFW_INSTALL OFF"
+        "BUILD_SHARED_LIBS ON"
 )
 
 # Add GLEW
@@ -77,59 +83,89 @@ CPMAddPackage(
 # Find OpenGL
 find_package(OpenGL REQUIRED)
 
-# Gather sources & create the SnapEngine static library
-file(GLOB_RECURSE SNAPENGINE_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+# Source files
+set(SOURCES
+    src/Window.cpp
+    src/WindowManager.cpp
+    src/DataManager.cpp
+    src/Model.cpp
+    src/Scene.cpp
+    src/Camera.cpp
+    src/Tests.cpp
+    src/Shader.cpp
+    src/Mesh.cpp
 )
 
-add_library(SnapEngine STATIC ${SNAPENGINE_SOURCES})
-set_msvc_options(SnapEngine)
-
-target_include_directories(SnapEngine PUBLIC
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
-    "$<INSTALL_INTERFACE:src>"
-    ${glm_SOURCE_DIR}
+# Header files
+set(HEADERS
+    src/Window.h
+    src/WindowManager.h
+    src/DataManager.h
+    src/Model.h
+    src/Mesh.h
+    src/Vertex.h
+    src/Tests.h
+    src/Scene.h
+    src/Camera.h
+    src/Shader.h
 )
 
-target_link_libraries(SnapEngine
-    PUBLIC
-        nlohmann_json
-        assimp
-        glm
+# Create the library target
+add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
+
+# Set include directories for the library
+target_include_directories(${PROJECT_NAME} 
+    PUBLIC 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${glm_SOURCE_DIR}
+)
+
+# Link dependencies
+target_link_libraries(${PROJECT_NAME} 
+    PUBLIC 
+        OpenGL::GL
         glfw
         libglew_static
-        OpenGL::GL
+        assimp
+        nlohmann_json::nlohmann_json
 )
 
-# Create the main executable
+# Set MSVC options for the library
+set_msvc_options(${PROJECT_NAME})
+
+# Create the executable target
 add_executable(SnapEngineApp main.cpp)
+
+# Link the library to the executable
+target_link_libraries(SnapEngineApp PRIVATE ${PROJECT_NAME})
+
+# Set MSVC options for the executable
 set_msvc_options(SnapEngineApp)
 
-target_link_libraries(SnapEngineApp
-    PRIVATE
-        SnapEngine
-)
+# Copy DLLs to output directory
+if(WIN32)
+    add_custom_command(TARGET SnapEngineApp POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:assimp>
+            $<TARGET_FILE_DIR:SnapEngineApp>
+    )
+endif()
 
-# Set the working directory for Visual Studio to match the executable's directory
-set_target_properties(SnapEngineApp PROPERTIES 
-    VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:SnapEngineApp>"
-)
-
-# Copy snapengine_data.json and assets after build
+# Copy test assets and shaders
 add_custom_command(TARGET SnapEngineApp POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/snapengine_data.json"
-        $<TARGET_FILE_DIR:SnapEngineApp>
-
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/test_assets"
-        "$<TARGET_FILE_DIR:SnapEngineApp>/test_assets"
+        "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/test_assets"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+        "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/shaders"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/test_data.json"
+        "${CMAKE_BINARY_DIR}/bin/$<CONFIG>/test_data.json"
 )
 
-# Enable Testing
+# Enable testing
 enable_testing()
-add_test(
-    NAME SnapEngineAllTests
-    COMMAND SnapEngineApp --test
-)
+add_test(NAME SnapEngineAllTests
+         COMMAND SnapEngineApp --test
+         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin/$<CONFIG>)

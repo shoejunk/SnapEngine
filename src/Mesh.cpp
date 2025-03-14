@@ -1,107 +1,73 @@
-/**
- * \file Mesh.cpp
- * \brief Implements a GPU-side mesh for SnapEngine.
- */
 #include "Mesh.h"
-#include <cassert>
+#include <string>
 #include <iostream>
 
-Mesh::~Mesh()
+void Mesh::setupMesh()
 {
-    // ComPtr will release resources automatically.
+    // Create buffers/arrays
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
+
+    // Bind vertex array object
+    glBindVertexArray(vao);
+
+    // Load data into vertex buffers
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+    // Set the vertex attribute pointers
+    // Vertex positions
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+
+    // Vertex normals
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+
+    // Vertex texture coords
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+
+    // Unbind VAO
+    glBindVertexArray(0);
 }
 
-bool Mesh::CreateFromModelPart(ID3D11Device* device, const Model::Mesh& srcMeshData)
+void Mesh::Draw() const
 {
-    if (!device)
+    // Bind appropriate textures
+    unsigned int diffuseNr = 1;
+    unsigned int specularNr = 1;
+
+    for (unsigned int i = 0; i < textures.size(); i++)
     {
-        std::cerr << "[Mesh] Invalid D3D device.\n";
-        return false;
+        // Activate proper texture unit before binding
+        glActiveTexture(GL_TEXTURE0 + i);
+
+        // Retrieve texture number (the N in diffuse_textureN)
+        std::string number;
+        std::string name = textures[i].type;
+        if (name == "texture_diffuse")
+            number = std::to_string(diffuseNr++);
+        else if (name == "texture_specular")
+            number = std::to_string(specularNr++);
+
+        // Bind the texture
+        glBindTexture(GL_TEXTURE_2D, textures[i].id);
     }
 
-    // In this example, we assume the vertex format is:
-    //  - Position (3 floats)
-    //  - Normal (3 floats)
-    //  - UV (2 floats)
-    // so stride = 8 * sizeof(float).
-    // If your Model format changes, you must adjust accordingly.
-    constexpr UINT FLOATS_PER_VERTEX = 8;
-    m_vertexStride = FLOATS_PER_VERTEX * sizeof(float);
+    // Draw mesh
+    glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, nullptr);
+    glBindVertexArray(0);
 
-    // Create vertex buffer
-    D3D11_BUFFER_DESC vbDesc = {};
-    vbDesc.Usage = D3D11_USAGE_DEFAULT;
-    vbDesc.ByteWidth = static_cast<UINT>(srcMeshData.vertices.size() * sizeof(float));
-    vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA vbData = {};
-    vbData.pSysMem = srcMeshData.vertices.data();
-
-    HRESULT hr = device->CreateBuffer(&vbDesc, &vbData, m_vertexBuffer.GetAddressOf());
-    if (FAILED(hr))
+    // Reset texture binding
+    for (unsigned int i = 0; i < textures.size(); i++)
     {
-        std::cerr << "[Mesh] Failed to create vertex buffer.\n";
-        return false;
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
-
-    m_vertexCount = static_cast<UINT>(srcMeshData.vertices.size() / FLOATS_PER_VERTEX);
-
-    // Create index buffer
-    if (!srcMeshData.indices.empty())
-    {
-        D3D11_BUFFER_DESC ibDesc = {};
-        ibDesc.Usage = D3D11_USAGE_DEFAULT;
-        ibDesc.ByteWidth = static_cast<UINT>(srcMeshData.indices.size() * sizeof(unsigned int));
-        ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-        D3D11_SUBRESOURCE_DATA ibData = {};
-        ibData.pSysMem = srcMeshData.indices.data();
-
-        hr = device->CreateBuffer(&ibDesc, &ibData, m_indexBuffer.GetAddressOf());
-        if (FAILED(hr))
-        {
-            std::cerr << "[Mesh] Failed to create index buffer.\n";
-            return false;
-        }
-
-        m_indexCount = static_cast<UINT>(srcMeshData.indices.size());
-    }
-
-    return true;
-}
-
-void Mesh::Draw(ID3D11DeviceContext* context) const
-{
-    if (!context)
-    {
-        return;
-    }
-    // Bind vertex buffer
-    UINT offset = 0;
-    context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &m_vertexStride, &offset);
-
-    // Bind index buffer (if any)
-    if (m_indexBuffer && m_indexCount > 0)
-    {
-        context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-        context->DrawIndexed(m_indexCount, 0, 0);
-    }
-    else
-    {
-        // No index buffer, draw non-indexed
-        context->Draw(m_vertexCount, 0);
-    }
-}
-
-void Mesh::test()
-{
-    std::cout << "[Mesh] Running tests...\n";
-    // We can't fully test GPU code without a device.
-    // We'll just do a minimal check here.
-    Mesh mesh;
-    bool result = mesh.CreateFromModelPart(nullptr, {});
-    // Should fail because device is null:
-    assert(result == false && "Expected failure with null device.");
-
-    std::cout << "[Mesh] Tests passed.\n";
 }

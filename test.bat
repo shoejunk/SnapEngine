@@ -11,5 +11,3 @@ ctest -C Release -V
 
 :: Pop back to the original directory (root folder)
 popd
-
-pause
